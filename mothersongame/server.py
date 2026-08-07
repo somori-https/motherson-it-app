@@ -10,8 +10,24 @@ app.secret_key = os.environ.get("SECRET_KEY", "motherson_inline_svg_2026")
 
 DB_NAME = "motherson_portal.db"
 
-# BULLETPROOF INLINE SVG LOGO (No external URL / No hotlink blocks)
-MOTHERSON_LOGO_SVG = """<svg class="h-7 w-auto" viewBox="0 0 320 50" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M10 10H20L28 30L36 10H46V40H38V20L30 38H26L18 20V40H10V10Z" fill="#E11D48"/><text x="52" y="34" font-family="-apple-system, BlinkMacSystemFont, Arial, sans-serif" font-weight="900" font-size="24" fill="#000000" letter-spacing="2.5">MOTHERSON</text></svg>"""
+# =========================================================================
+# PURE INLINE SVG LOGO (No external image files / Zero external network dependencies)
+# =========================================================================
+MOTHERSON_LOGO_SVG = """
+<svg class="h-8 w-auto" viewBox="0 0 320 50" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <rect width="320" height="50" rx="4" fill="#000000"/>
+    <path d="M12 10H22L30 30L38 10H48V40H40V20L32 38H28L20 20V40H12V10Z" fill="#E11D48"/>
+    <text x="56" y="34" font-family="-apple-system, BlinkMacSystemFont, Arial, sans-serif" font-weight="900" font-size="24" fill="#FFFFFF" letter-spacing="2.5">MOTHERSON</text>
+</svg>
+"""
+
+BROKEN_IMAGE_FALLBACK_SVG = """
+<svg class="h-10 w-auto" viewBox="0 0 320 50" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <rect width="320" height="50" rx="4" fill="#E11D48"/>
+    <path d="M12 10H22L30 30L38 10H48V40H40V20L32 38H28L20 20V40H12V10Z" fill="#FFFFFF"/>
+    <text x="56" y="34" font-family="-apple-system, BlinkMacSystemFont, Arial, sans-serif" font-weight="900" font-size="24" fill="#FFFFFF" letter-spacing="2.5">MOTHERSON</text>
+</svg>
+"""
 
 # ==========================================
 # 1. DATABASE INIT
@@ -114,7 +130,7 @@ def admin_required(f):
     return decorated_function
 
 # ==========================================
-# 3. RED, WHITE & BLACK LAYOUT
+# 3. HTML LAYOUT TEMPLATE
 # ==========================================
 HTML_LAYOUT = """
 <!DOCTYPE html>
@@ -148,45 +164,19 @@ HTML_LAYOUT = """
       * { -webkit-tap-highlight-color: transparent; }
       body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
       
-      .video-bg-container {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        z-index: -2;
-        overflow: hidden;
-      }
-      .video-bg-container video {
-        min-width: 100%;
-        min-height: 100%;
-        width: auto;
-        height: auto;
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        object-fit: cover;
-      }
       .video-overlay {
         position: fixed;
         top: 0;
         left: 0;
         width: 100%;
         height: 100%;
-        background: rgba(0, 0, 0, 0.85);
+        background: radial-gradient(circle at center, #18181b 0%, #000000 100%);
         z-index: -1;
       }
     </style>
 </head>
 <body class="h-full flex flex-col text-white bg-black antialiased selection:bg-brand-red selection:text-white" x-data="{ mobileMenuOpen: false }">
     
-    <!-- BACKGROUND VIDEO -->
-    <div class="video-bg-container">
-        <video autoplay loop muted playsinline poster="https://images.unsplash.com/photo-1518770660439-4636190af475?q=80&w=1920">
-            <source src="https://assets.mixkit.co/videos/preview/mixkit-circuit-board-loop-video-40348-large.mp4" type="video/mp4">
-        </video>
-    </div>
     <div class="video-overlay"></div>
 
     <!-- TOP NAVIGATION BAR -->
@@ -194,9 +184,9 @@ HTML_LAYOUT = """
         <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex items-center justify-between h-16">
                 
-                <!-- Brand Official Logo (Embedded SVG) -->
+                <!-- Brand Official Logo (Embedded SVG - guaranteed to show up) -->
                 <div class="flex items-center space-x-3">
-                    <a href="/dashboard" class="flex items-center bg-white px-3 py-1.5 rounded shadow-lg hover:bg-zinc-100 transition-colors">
+                    <a href="/dashboard" class="flex items-center bg-black p-1 rounded border border-zinc-800 hover:border-brand-red transition-colors">
                         ''' + MOTHERSON_LOGO_SVG + '''
                     </a>
                     <span class="hidden sm:inline-block text-xs font-semibold uppercase tracking-widest text-zinc-400 border-l border-zinc-800 pl-3">
@@ -308,8 +298,8 @@ def register():
     content = '''
     <div class="max-w-md mx-auto my-8 bg-zinc-950/90 backdrop-blur-md p-6 sm:p-8 rounded-xl border border-brand-red/50 shadow-2xl">
         <div class="text-center mb-6">
-            <div class="inline-block bg-white p-3 rounded-lg shadow-lg mb-4">
-                ''' + MOTHERSON_LOGO_SVG + '''
+            <div class="inline-block bg-black p-3 rounded-lg border border-zinc-800 shadow-lg mb-4">
+                ''' + BROKEN_IMAGE_FALLBACK_SVG + '''
             </div>
             <h2 class="text-2xl font-bold text-white tracking-tight">Operator Registration</h2>
             <p class="text-xs text-zinc-400 mt-1">Join the enterprise simulation platform</p>
@@ -356,8 +346,8 @@ def login():
     content = '''
     <div class="max-w-md mx-auto my-8 bg-zinc-950/90 backdrop-blur-md p-6 sm:p-8 rounded-xl border border-brand-red/50 shadow-2xl">
         <div class="text-center mb-6">
-            <div class="inline-block bg-white p-3 rounded-lg shadow-lg mb-4">
-                ''' + MOTHERSON_LOGO_SVG + '''
+            <div class="inline-block bg-black p-3 rounded-lg border border-zinc-800 shadow-lg mb-4">
+                ''' + BROKEN_IMAGE_FALLBACK_SVG + '''
             </div>
             <h2 class="text-2xl font-bold text-white tracking-tight">System Login</h2>
             <p class="text-xs text-zinc-400 mt-1">Access secure operations command portal</p>
