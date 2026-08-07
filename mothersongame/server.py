@@ -6,9 +6,12 @@ from flask import Flask, render_template_string, request, redirect, url_for, ses
 from werkzeug.security import generate_password_hash, check_password_hash
 
 app = Flask(__name__)
-app.secret_key = os.environ.get("SECRET_KEY", "motherson_red_black_white_prod_2026")
+app.secret_key = os.environ.get("SECRET_KEY", "motherson_logo_red_black_white_2026")
 
 DB_NAME = "motherson_portal.db"
+
+# Official Motherson Logo URL (Crisp Transparent PNG)
+MOTHERSON_LOGO_URL = "https://upload.wikimedia.org/wikipedia/commons/thumb/8/87/Motherson_Group_logo.svg/512px-Motherson_Group_logo.svg.png"
 
 # ==========================================
 # 1. DATABASE INIT
@@ -111,7 +114,7 @@ def admin_required(f):
     return decorated_function
 
 # ==========================================
-# 3. RED, WHITE & BLACK LAYOUT WITH VIDEO BG
+# 3. RED, WHITE & BLACK LAYOUT WITH LOGO & VIDEO
 # ==========================================
 HTML_LAYOUT = """
 <!DOCTYPE html>
@@ -145,7 +148,6 @@ HTML_LAYOUT = """
       * { -webkit-tap-highlight-color: transparent; }
       body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
       
-      /* Video Background Overlay */
       .video-bg-container {
         position: fixed;
         top: 0;
@@ -172,7 +174,7 @@ HTML_LAYOUT = """
         left: 0;
         width: 100%;
         height: 100%;
-        background: rgba(0, 0, 0, 0.82); /* Dark overlay for text readability */
+        background: rgba(0, 0, 0, 0.85);
         z-index: -1;
       }
     </style>
@@ -188,17 +190,19 @@ HTML_LAYOUT = """
     <div class="video-overlay"></div>
 
     <!-- TOP NAVIGATION BAR -->
-    <nav class="bg-black/90 backdrop-blur-md border-b border-brand-red/40 sticky top-0 z-50">
+    <nav class="bg-black/90 backdrop-blur-md border-b border-brand-red/50 sticky top-0 z-50">
         <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex items-center justify-between h-16">
                 
-                <!-- Brand Logo -->
+                <!-- Brand Official Logo -->
                 <div class="flex items-center space-x-3">
-                    <a href="/dashboard" class="bg-brand-red text-white font-black tracking-widest text-lg px-3 py-1 rounded-sm shadow-lg hover:bg-brand-hover transition-colors">
-                        MOTHERSON
+                    <a href="/dashboard" class="flex items-center bg-white/95 px-3 py-1.5 rounded shadow-lg hover:bg-white transition-colors">
+                        <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/8/87/Motherson_Group_logo.svg/512px-Motherson_Group_logo.svg.png" 
+                             alt="Motherson Logo" 
+                             class="h-6 sm:h-7 w-auto object-contain">
                     </a>
                     <span class="hidden sm:inline-block text-xs font-semibold uppercase tracking-widest text-zinc-400 border-l border-zinc-800 pl-3">
-                        Enterprise Operations
+                        Enterprise Command Portal
                     </span>
                 </div>
 
@@ -207,7 +211,7 @@ HTML_LAYOUT = """
                 <div class="hidden md:flex items-center space-x-4">
                     <span class="text-xs text-zinc-400">User: <strong class="text-white font-medium">{{ session['user'] }}</strong></span>
                     {% if session.get('role') == 'admin' %}
-                        <a href="/admin" class="bg-white text-black font-bold text-xs px-3 py-2 rounded shadow hover:bg-zinc-200 transition-all">
+                        <a href="/admin" class="bg-white text-black font-extrabold text-xs px-3 py-2 rounded shadow hover:bg-zinc-200 transition-all">
                             ⚙️ Admin Panel
                         </a>
                     {% endif %}
@@ -244,7 +248,7 @@ HTML_LAYOUT = """
             </div>
             <a href="/dashboard" class="block w-full text-left px-3 py-2.5 rounded text-sm font-medium bg-zinc-900 text-white">Dashboard</a>
             {% if session.get('role') == 'admin' %}
-                <a href="/admin" class="block w-full text-left px-3 py-2.5 rounded text-sm font-medium bg-white text-black font-bold">⚙️ Admin Control Panel</a>
+                <a href="/admin" class="block w-full text-left px-3 py-2.5 rounded text-sm font-medium bg-white text-black font-extrabold">⚙️ Admin Control Panel</a>
             {% endif %}
             <a href="/logout" class="block w-full text-left px-3 py-2.5 rounded text-sm font-medium bg-brand-red text-white">Logout</a>
         </div>
@@ -266,8 +270,10 @@ HTML_LAYOUT = """
     </main>
 
     <!-- FOOTER -->
-    <footer class="bg-black/90 border-t border-zinc-900 py-4 text-center text-xs text-zinc-500">
-        MOTHERSON ENTERPRISE &copy; 2026 | Red & White Corporate System
+    <footer class="bg-black/90 border-t border-zinc-900 py-4 text-center text-xs text-zinc-500 flex flex-col items-center justify-center space-y-2">
+        <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/8/87/Motherson_Group_logo.svg/512px-Motherson_Group_logo.svg.png" 
+             alt="Motherson Logo" class="h-4 w-auto grayscale opacity-40 hover:opacity-100 transition-opacity">
+        <div>MOTHERSON ENTERPRISE &copy; 2026 | Red & White Corporate System</div>
     </footer>
 </body>
 </html>
@@ -306,7 +312,10 @@ def register():
     content = '''
     <div class="max-w-md mx-auto my-8 bg-zinc-950/90 backdrop-blur-md p-6 sm:p-8 rounded-xl border border-brand-red/50 shadow-2xl">
         <div class="text-center mb-6">
-            <div class="inline-block bg-brand-red text-white text-xs font-black tracking-widest px-3 py-1 rounded mb-3">MOTHERSON</div>
+            <div class="inline-block bg-white p-2.5 rounded shadow-lg mb-4">
+                <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/8/87/Motherson_Group_logo.svg/512px-Motherson_Group_logo.svg.png" 
+                     alt="Motherson Logo" class="h-8 w-auto mx-auto object-contain">
+            </div>
             <h2 class="text-2xl font-bold text-white tracking-tight">Operator Registration</h2>
             <p class="text-xs text-zinc-400 mt-1">Join the enterprise simulation platform</p>
         </div>
@@ -352,7 +361,10 @@ def login():
     content = '''
     <div class="max-w-md mx-auto my-8 bg-zinc-950/90 backdrop-blur-md p-6 sm:p-8 rounded-xl border border-brand-red/50 shadow-2xl">
         <div class="text-center mb-6">
-            <div class="inline-block bg-brand-red text-white text-xs font-black tracking-widest px-3 py-1 rounded mb-3">MOTHERSON</div>
+            <div class="inline-block bg-white p-2.5 rounded shadow-lg mb-4">
+                <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/8/87/Motherson_Group_logo.svg/512px-Motherson_Group_logo.svg.png" 
+                     alt="Motherson Logo" class="h-8 w-auto mx-auto object-contain">
+            </div>
             <h2 class="text-2xl font-bold text-white tracking-tight">System Login</h2>
             <p class="text-xs text-zinc-400 mt-1">Access secure operations command portal</p>
         </div>
