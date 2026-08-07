@@ -541,9 +541,14 @@ def login():
 @login_required
 def dashboard():
     conn = get_db()
+    
+    # Group by username so each employee only appears ONCE with their highest score
     rankings = conn.execute('''
-        SELECT username, department, plant_location, score, time_seconds, completed_at 
-        FROM scores ORDER BY score DESC, time_seconds ASC LIMIT 10
+        SELECT username, department, plant_location, MAX(score) as score, MIN(time_seconds) as time_seconds, MAX(completed_at) as completed_at 
+        FROM scores 
+        GROUP BY username 
+        ORDER BY score DESC, time_seconds ASC 
+        LIMIT 10
     ''').fetchall()
     
     user_best = conn.execute('''
