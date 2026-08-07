@@ -94,7 +94,7 @@ def init_db():
         )
     ''')
     
-    # Safe migrations for existing databases
+    # Safe schema additions for existing SQLite databases
     try:
         cursor.execute("ALTER TABLE users ADD COLUMN nickname TEXT DEFAULT ''")
     except sqlite3.OperationalError:
@@ -134,11 +134,10 @@ def init_db():
         )
     ''')
     
-    admin_hash = generate_password_hash("Admin#Motherson2026!")
+    # Ensure standard admin exists without wiping user edits
     cursor.execute("SELECT * FROM users WHERE username = 'admin'")
-    if cursor.fetchone():
-        cursor.execute("UPDATE users SET password_hash = ?, role = 'admin' WHERE username = 'admin'", (admin_hash,))
-    else:
+    if not cursor.fetchone():
+        admin_hash = generate_password_hash("Admin#Motherson2026!")
         cursor.execute("INSERT INTO users (username, nickname, avatar, password_hash, role, department, plant_location) VALUES ('admin', 'System Admin', '🛡️', ?, 'admin', 'IT & Digital Infrastructure', 'Global HQ & IT Center')", (admin_hash,))
     
     cursor.execute("SELECT COUNT(*) FROM questions")
@@ -314,7 +313,7 @@ HTML_LAYOUT = """
                         <span class="text-xl bg-black px-2 py-0.5 rounded border border-zinc-800 group-hover:scale-110 transition-transform">{{ session.get('avatar', '🤖') }}</span>
                         <div>
                             <div class="text-xs text-white font-bold group-hover:text-red-500 transition-colors">{{ session.get('nickname') or session['user'] }}</div>
-                            <div class="text-[10px] text-zinc-400">✏️ Edit Profile</div>
+                            <div class="text-[10px] text-zinc-400">✏️ Profile Settings</div>
                         </div>
                     </button>
 
@@ -361,7 +360,7 @@ HTML_LAYOUT = """
         {% endif %}
     </nav>
 
-    <!-- PROFILE MANAGEMENT WIDGET (MODAL) -->
+    <!-- PROFILE MANAGEMENT WIDGET -->
     {% if session.get('user') %}
     <div x-show="profileWidgetOpen" x-cloak class="fixed inset-0 z-50 overflow-y-auto bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
         <div @click.away="profileWidgetOpen = false" class="bg-zinc-950 border border-red-600/60 rounded-xl max-w-lg w-full p-6 shadow-2xl space-y-6 relative">
@@ -371,7 +370,7 @@ HTML_LAYOUT = """
                     <span class="text-3xl bg-black p-2 rounded-lg border border-zinc-800">{{ session.get('avatar', '🤖') }}</span>
                     <div>
                         <h3 class="text-lg font-bold text-white">Manage Operator Profile</h3>
-                        <p class="text-xs text-zinc-400">ID: {{ session['user'] }}</p>
+                        <p class="text-xs text-zinc-400">Account Username: <strong class="text-white">{{ session['user'] }}</strong></p>
                     </div>
                 </div>
                 <button @click="profileWidgetOpen = false" class="text-zinc-400 hover:text-white p-1 rounded">
@@ -420,7 +419,7 @@ HTML_LAYOUT = """
 
                 <div class="pt-2 border-t border-zinc-900">
                     <label class="block text-zinc-400 mb-1 font-bold uppercase tracking-wider text-[10px]">Change Password (Optional)</label>
-                    <input type="password" name="new_password" placeholder="Leave blank to keep current password"
+                    <input type="password" name="new_password" placeholder="Leave blank to maintain password"
                            class="w-full bg-black border border-zinc-800 rounded px-3 py-2 text-white focus:outline-none focus:border-red-600">
                 </div>
 
@@ -463,6 +462,8 @@ def render_page(content, **context):
 
 @app.route('/')
 def index():
+    if 'user' in session:
+        return redirect(url_for('dashboard'))
     return redirect(url_for('login'))
 
 @app.route('/register', methods=['GET', 'POST'])
@@ -487,10 +488,11 @@ def register():
                 VALUES (?, ?, ?, ?, 'operator', ?, ?)
             ''', (username, nickname or username, avatar, hashed_pwd, department, plant_location))
             conn.commit()
-            flash("Account registered successfully! Please sign in.", "success")
+            flash("Account registered successfully! Please sign in with your credentials.", "success")
             return redirect(url_for('login'))
         except sqlite3.IntegrityError:
-            flash("Username / Employee ID already exists.", "danger")
+            flash("Username / Employee ID already registered. Sign in instead.", "danger")
+            return redirect(url_for('login'))
         finally:
             conn.close()
 
@@ -501,7 +503,7 @@ def register():
                 {{ logo_svg|safe }}
             </div>
             <h2 class="text-2xl font-bold text-white tracking-tight">Employee Registration</h2>
-            <p class="text-xs text-zinc-400 mt-1">Register your profile across enterprise departments</p>
+            <p class="text-xs text-zinc-400 mt-1">Register your permanent account in the portal database</p>
         </div>
         <form method="POST" class="space-y-4">
             <div>
@@ -536,7 +538,7 @@ def register():
                        class="w-full bg-black border border-zinc-800 rounded px-4 py-3 text-white focus:outline-none focus:border-red-600 transition-all">
             </div>
             <button type="submit" class="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3.5 rounded shadow-lg transition-all active:scale-[0.98]">
-                Register Profile
+                Register Account
             </button>
         </form>
         <p class="text-xs text-center text-zinc-400 mt-6">
@@ -565,7 +567,7 @@ def login():
             session['plant_location'] = user['plant_location']
             return redirect(url_for('dashboard'))
         else:
-            flash("Invalid login credentials.", "danger")
+            flash("Invalid credentials. Please verify username and password.", "danger")
             
     content = '''
     <div class="max-w-md mx-auto my-8 bg-zinc-950/90 backdrop-blur-md p-6 sm:p-8 rounded-xl border border-red-600/50 shadow-2xl">
@@ -638,10 +640,13 @@ def update_profile():
 def dashboard():
     conn = get_db()
     
+    # Retrieves all accounts with scores, outer joined to render registered accounts properly
     rankings = conn.execute('''
-        SELECT u.username, u.nickname, u.avatar, u.department, u.plant_location, SUM(s.score) as score, SUM(s.time_seconds) as time_seconds 
-        FROM scores s
-        JOIN users u ON s.username = u.username
+        SELECT u.username, u.nickname, u.avatar, u.department, u.plant_location, 
+               COALESCE(SUM(s.score), 0) as score, 
+               COALESCE(SUM(s.time_seconds), 0) as time_seconds 
+        FROM users u
+        LEFT JOIN scores s ON u.username = s.username
         GROUP BY u.username 
         ORDER BY score DESC, time_seconds ASC 
         LIMIT 10
@@ -723,8 +728,8 @@ def dashboard():
 
         <div class="bg-zinc-950/90 backdrop-blur-md p-6 rounded-xl border border-zinc-800 shadow-xl">
             <h3 class="text-lg font-bold text-white mb-4 flex items-center justify-between border-b border-zinc-800 pb-2">
-                <span>🏆 Enterprise Rankings</span>
-                <span class="text-xs text-red-500 font-bold">CUMULATIVE POINTS</span>
+                <span>🏆 Enterprise Leaderboard & User Directory</span>
+                <span class="text-xs text-red-500 font-bold">PERSISTENT SYSTEM USERS</span>
             </h3>
             
             <div class="overflow-x-auto">
@@ -732,7 +737,7 @@ def dashboard():
                     <thead class="bg-black text-zinc-400 uppercase tracking-wider">
                         <tr>
                             <th class="p-3">#</th>
-                            <th class="p-3">Employee</th>
+                            <th class="p-3">Employee Profile</th>
                             <th class="p-3">Department</th>
                             <th class="p-3">Plant Facility</th>
                             <th class="p-3">Total Score</th>
@@ -746,6 +751,7 @@ def dashboard():
                             <td class="p-3 font-bold text-white flex items-center space-x-2">
                                 <span class="bg-black border border-zinc-800 px-1.5 py-0.5 rounded text-sm">{{ r['avatar'] or '🤖' }}</span>
                                 <span>{{ r['nickname'] or r['username'] }}</span>
+                                <span class="text-[10px] text-zinc-500 font-normal">({{ r['username'] }})</span>
                             </td>
                             <td class="p-3 text-zinc-400">{{ r['department'] }}</td>
                             <td class="p-3 text-zinc-400">{{ r['plant_location'] }}</td>
@@ -754,7 +760,7 @@ def dashboard():
                         </tr>
                         {% else %}
                         <tr>
-                            <td colspan="6" class="p-4 text-center text-zinc-500">No score records registered yet.</td>
+                            <td colspan="6" class="p-4 text-center text-zinc-500">No account records registered yet.</td>
                         </tr>
                         {% endfor %}
                     </tbody>
@@ -1022,6 +1028,7 @@ def admin_panel():
 @app.route('/logout')
 def logout():
     session.clear()
+    flash("Successfully signed out.", "success")
     return redirect(url_for('login'))
 
 if __name__ == '__main__':
