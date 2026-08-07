@@ -32,6 +32,8 @@ PLANT_LOCATIONS = [
     "Global HQ & IT Center"
 ]
 
+AVATARS = ["🤖", "👤", "💻", "⚡", "🛡️", "⚙️", "🚀", "🎯", "🛠️", "📊"]
+
 ROOMS = [
     {
         "id": 1,
@@ -83,12 +85,25 @@ def init_db():
         CREATE TABLE IF NOT EXISTS users (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             username TEXT UNIQUE NOT NULL,
+            nickname TEXT DEFAULT '',
+            avatar TEXT DEFAULT '🤖',
             password_hash TEXT NOT NULL,
             role TEXT NOT NULL DEFAULT 'operator',
             department TEXT NOT NULL DEFAULT 'Plant Operations & Assembly',
             plant_location TEXT NOT NULL DEFAULT 'Plant A - Main Assembly'
         )
     ''')
+    
+    # Safe migrations for existing databases
+    try:
+        cursor.execute("ALTER TABLE users ADD COLUMN nickname TEXT DEFAULT ''")
+    except sqlite3.OperationalError:
+        pass
+
+    try:
+        cursor.execute("ALTER TABLE users ADD COLUMN avatar TEXT DEFAULT '🤖'")
+    except sqlite3.OperationalError:
+        pass
     
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS questions (
@@ -124,7 +139,7 @@ def init_db():
     if cursor.fetchone():
         cursor.execute("UPDATE users SET password_hash = ?, role = 'admin' WHERE username = 'admin'", (admin_hash,))
     else:
-        cursor.execute("INSERT INTO users (username, password_hash, role, department, plant_location) VALUES ('admin', ?, 'admin', 'IT & Digital Infrastructure', 'Global HQ & IT Center')", (admin_hash,))
+        cursor.execute("INSERT INTO users (username, nickname, avatar, password_hash, role, department, plant_location) VALUES ('admin', 'System Admin', '🛡️', ?, 'admin', 'IT & Digital Infrastructure', 'Global HQ & IT Center')", (admin_hash,))
     
     cursor.execute("SELECT COUNT(*) FROM questions")
     if cursor.fetchone()[0] == 0:
@@ -275,9 +290,10 @@ HTML_LAYOUT = """
         background: radial-gradient(circle at center, #18181b 0%, #000000 100%);
         z-index: -1;
       }
+      [x-cloak] { display: none !important; }
     </style>
 </head>
-<body class="h-full flex flex-col text-white bg-black antialiased selection:bg-red-600 selection:text-white" x-data="{ mobileMenuOpen: false }">
+<body class="h-full flex flex-col text-white bg-black antialiased selection:bg-red-600 selection:text-white" x-data="{ mobileMenuOpen: false, profileWidgetOpen: false }">
     <div class="bg-radial-gradient"></div>
 
     <nav class="bg-black/90 backdrop-blur-md border-b border-red-600/50 sticky top-0 z-50">
@@ -294,10 +310,14 @@ HTML_LAYOUT = """
 
                 {% if session.get('user') %}
                 <div class="hidden md:flex items-center space-x-4">
-                    <div class="text-right">
-                        <div class="text-xs text-white font-bold">{{ session['user'] }}</div>
-                        <div class="text-[10px] text-zinc-400">{{ session.get('department', 'Plant Operations') }}</div>
-                    </div>
+                    <button @click="profileWidgetOpen = true" type="button" class="flex items-center space-x-2 text-right bg-zinc-900 border border-zinc-800 hover:border-red-600 px-3 py-1.5 rounded transition-all group">
+                        <span class="text-xl bg-black px-2 py-0.5 rounded border border-zinc-800 group-hover:scale-110 transition-transform">{{ session.get('avatar', '🤖') }}</span>
+                        <div>
+                            <div class="text-xs text-white font-bold group-hover:text-red-500 transition-colors">{{ session.get('nickname') or session['user'] }}</div>
+                            <div class="text-[10px] text-zinc-400">✏️ Edit Profile</div>
+                        </div>
+                    </button>
+
                     {% if session.get('role') == 'admin' %}
                         <a href="/admin" class="bg-white text-black font-extrabold text-xs px-3 py-2 rounded shadow hover:bg-zinc-200 transition-all">
                             ⚙️ Admin Control
@@ -311,7 +331,10 @@ HTML_LAYOUT = """
                     </a>
                 </div>
 
-                <div class="md:hidden flex items-center">
+                <div class="md:hidden flex items-center space-x-2">
+                    <button @click="profileWidgetOpen = true" type="button" class="text-xl p-2 rounded bg-zinc-900 border border-zinc-800">
+                        {{ session.get('avatar', '🤖') }}
+                    </button>
                     <button @click="mobileMenuOpen = !mobileMenuOpen" type="button" class="text-white p-2 rounded bg-zinc-900 border border-zinc-800 focus:outline-none">
                         <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path x-show="!mobileMenuOpen" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
@@ -325,9 +348,10 @@ HTML_LAYOUT = """
 
         {% if session.get('user') %}
         <div x-show="mobileMenuOpen" x-cloak class="md:hidden bg-black/95 border-b border-red-600 px-4 pt-2 pb-4 space-y-2">
-            <div class="px-2 py-1 text-xs text-zinc-400 border-b border-zinc-800 mb-2">
-                User: <strong class="text-white">{{ session['user'] }}</strong> ({{ session.get('department') }})
-            </div>
+            <button @click="profileWidgetOpen = true; mobileMenuOpen = false" class="w-full text-left px-3 py-2.5 rounded text-sm font-medium bg-zinc-900 text-white flex items-center justify-between">
+                <span>Profile: <strong class="text-red-500">{{ session.get('nickname') or session['user'] }}</strong></span>
+                <span>{{ session.get('avatar', '🤖') }} ✏️</span>
+            </button>
             <a href="/dashboard" class="block w-full text-left px-3 py-2.5 rounded text-sm font-medium bg-zinc-900 text-white">Dashboard</a>
             {% if session.get('role') == 'admin' %}
                 <a href="/admin" class="block w-full text-left px-3 py-2.5 rounded text-sm font-medium bg-white text-black font-extrabold">⚙️ Admin Control Panel</a>
@@ -336,6 +360,82 @@ HTML_LAYOUT = """
         </div>
         {% endif %}
     </nav>
+
+    <!-- PROFILE MANAGEMENT WIDGET (MODAL) -->
+    {% if session.get('user') %}
+    <div x-show="profileWidgetOpen" x-cloak class="fixed inset-0 z-50 overflow-y-auto bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+        <div @click.away="profileWidgetOpen = false" class="bg-zinc-950 border border-red-600/60 rounded-xl max-w-lg w-full p-6 shadow-2xl space-y-6 relative">
+            
+            <div class="flex items-center justify-between border-b border-zinc-800 pb-3">
+                <div class="flex items-center space-x-3">
+                    <span class="text-3xl bg-black p-2 rounded-lg border border-zinc-800">{{ session.get('avatar', '🤖') }}</span>
+                    <div>
+                        <h3 class="text-lg font-bold text-white">Manage Operator Profile</h3>
+                        <p class="text-xs text-zinc-400">ID: {{ session['user'] }}</p>
+                    </div>
+                </div>
+                <button @click="profileWidgetOpen = false" class="text-zinc-400 hover:text-white p-1 rounded">
+                    ✕
+                </button>
+            </div>
+
+            <form action="/update-profile" method="POST" class="space-y-4 text-xs sm:text-sm">
+                <div>
+                    <label class="block text-zinc-400 mb-1 font-bold uppercase tracking-wider text-[10px]">Select Badge / Avatar</label>
+                    <div class="grid grid-cols-5 gap-2">
+                        {% for icon in avatars %}
+                        <label class="cursor-pointer">
+                            <input type="radio" name="avatar" value="{{ icon }}" class="peer hidden" {% if session.get('avatar') == icon %}checked{% endif %}>
+                            <div class="text-center text-xl p-2.5 rounded bg-black border border-zinc-800 peer-checked:border-red-600 peer-checked:bg-red-950/40 hover:border-zinc-600 transition-all">
+                                {{ icon }}
+                            </div>
+                        </label>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-zinc-400 mb-1 font-bold uppercase tracking-wider text-[10px]">Display Name / Nickname</label>
+                    <input type="text" name="nickname" value="{{ session.get('nickname', '') }}" placeholder="{{ session['user'] }}"
+                           class="w-full bg-black border border-zinc-800 rounded px-3 py-2 text-white focus:outline-none focus:border-red-600">
+                </div>
+
+                <div>
+                    <label class="block text-zinc-400 mb-1 font-bold uppercase tracking-wider text-[10px]">Department</label>
+                    <select name="department" class="w-full bg-black border border-zinc-800 rounded px-3 py-2 text-white focus:outline-none focus:border-red-600">
+                        {% for dept in departments %}
+                            <option value="{{ dept }}" {% if session.get('department') == dept %}selected{% endif %}>{{ dept }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-zinc-400 mb-1 font-bold uppercase tracking-wider text-[10px]">Plant Location</label>
+                    <select name="plant_location" class="w-full bg-black border border-zinc-800 rounded px-3 py-2 text-white focus:outline-none focus:border-red-600">
+                        {% for plant in plants %}
+                            <option value="{{ plant }}" {% if session.get('plant_location') == plant %}selected{% endif %}>{{ plant }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="pt-2 border-t border-zinc-900">
+                    <label class="block text-zinc-400 mb-1 font-bold uppercase tracking-wider text-[10px]">Change Password (Optional)</label>
+                    <input type="password" name="new_password" placeholder="Leave blank to keep current password"
+                           class="w-full bg-black border border-zinc-800 rounded px-3 py-2 text-white focus:outline-none focus:border-red-600">
+                </div>
+
+                <div class="flex items-center justify-end space-x-3 pt-4 border-t border-zinc-800">
+                    <button type="button" @click="profileWidgetOpen = false" class="bg-zinc-900 hover:bg-zinc-800 text-zinc-300 font-bold px-4 py-2 rounded text-xs">
+                        Cancel
+                    </button>
+                    <button type="submit" class="bg-red-600 hover:bg-red-700 text-white font-bold px-5 py-2 rounded text-xs shadow-lg transition-all">
+                        Save Profile Updates
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+    {% endif %}
 
     <main class="flex-grow container mx-auto px-4 sm:px-6 lg:px-8 py-6 max-w-6xl">
         {% with messages = get_flashed_messages(with_categories=true) %}
@@ -359,7 +459,7 @@ HTML_LAYOUT = """
 
 def render_page(content, **context):
     full_template = HTML_LAYOUT.replace('{% block content %}{% endblock %}', content)
-    return render_template_string(full_template, logo_svg=MOTHERSON_LOGO_SVG, **context)
+    return render_template_string(full_template, logo_svg=MOTHERSON_LOGO_SVG, departments=DEPARTMENTS, plants=PLANT_LOCATIONS, avatars=AVATARS, **context)
 
 @app.route('/')
 def index():
@@ -369,6 +469,8 @@ def index():
 def register():
     if request.method == 'POST':
         username = request.form['username'].strip()
+        nickname = request.form.get('nickname', '').strip()
+        avatar = request.form.get('avatar', '🤖')
         password = request.form['password'].strip()
         department = request.form.get('department', DEPARTMENTS[1])
         plant_location = request.form.get('plant_location', PLANT_LOCATIONS[0])
@@ -381,9 +483,9 @@ def register():
         conn = get_db()
         try:
             conn.execute('''
-                INSERT INTO users (username, password_hash, role, department, plant_location) 
-                VALUES (?, ?, 'operator', ?, ?)
-            ''', (username, hashed_pwd, department, plant_location))
+                INSERT INTO users (username, nickname, avatar, password_hash, role, department, plant_location) 
+                VALUES (?, ?, ?, ?, 'operator', ?, ?)
+            ''', (username, nickname or username, avatar, hashed_pwd, department, plant_location))
             conn.commit()
             flash("Account registered successfully! Please sign in.", "success")
             return redirect(url_for('login'))
@@ -405,6 +507,11 @@ def register():
             <div>
                 <label class="block text-xs font-medium text-zinc-300 mb-1.5 uppercase tracking-wider">Username / Employee ID</label>
                 <input type="text" name="username" required autocomplete="off" 
+                       class="w-full bg-black border border-zinc-800 rounded px-4 py-3 text-white focus:outline-none focus:border-red-600 transition-all">
+            </div>
+            <div>
+                <label class="block text-xs font-medium text-zinc-300 mb-1.5 uppercase tracking-wider">Display Nickname</label>
+                <input type="text" name="nickname" placeholder="e.g. Alex_Dev"
                        class="w-full bg-black border border-zinc-800 rounded px-4 py-3 text-white focus:outline-none focus:border-red-600 transition-all">
             </div>
             <div>
@@ -437,7 +544,7 @@ def register():
         </p>
     </div>
     '''
-    return render_page(content, departments=DEPARTMENTS, plants=PLANT_LOCATIONS)
+    return render_page(content)
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -451,6 +558,8 @@ def login():
         
         if user and check_password_hash(user['password_hash'], password):
             session['user'] = user['username']
+            session['nickname'] = user['nickname'] or user['username']
+            session['avatar'] = user['avatar'] or '🤖'
             session['role'] = user['role']
             session['department'] = user['department']
             session['plant_location'] = user['plant_location']
@@ -491,16 +600,49 @@ def login():
     '''
     return render_page(content)
 
+@app.route('/update-profile', methods=['POST'])
+@login_required
+def update_profile():
+    nickname = request.form.get('nickname', '').strip()
+    avatar = request.form.get('avatar', '🤖')
+    department = request.form.get('department')
+    plant_location = request.form.get('plant_location')
+    new_password = request.form.get('new_password', '').strip()
+
+    conn = get_db()
+    if new_password:
+        hashed_pwd = generate_password_hash(new_password)
+        conn.execute('''
+            UPDATE users SET nickname = ?, avatar = ?, department = ?, plant_location = ?, password_hash = ?
+            WHERE username = ?
+        ''', (nickname, avatar, department, plant_location, hashed_pwd, session['user']))
+    else:
+        conn.execute('''
+            UPDATE users SET nickname = ?, avatar = ?, department = ?, plant_location = ?
+            WHERE username = ?
+        ''', (nickname, avatar, department, plant_location, session['user']))
+    
+    conn.commit()
+    conn.close()
+
+    session['nickname'] = nickname or session['user']
+    session['avatar'] = avatar
+    session['department'] = department
+    session['plant_location'] = plant_location
+
+    flash("Profile updated successfully!", "success")
+    return redirect(request.referrer or url_for('dashboard'))
+
 @app.route('/dashboard')
 @login_required
 def dashboard():
     conn = get_db()
     
-    # SUM(score) aggregates total accumulated points earned across all completed modules
     rankings = conn.execute('''
-        SELECT username, department, plant_location, SUM(score) as score, SUM(time_seconds) as time_seconds, MAX(completed_at) as completed_at 
-        FROM scores 
-        GROUP BY username 
+        SELECT u.username, u.nickname, u.avatar, u.department, u.plant_location, SUM(s.score) as score, SUM(s.time_seconds) as time_seconds 
+        FROM scores s
+        JOIN users u ON s.username = u.username
+        GROUP BY u.username 
         ORDER BY score DESC, time_seconds ASC 
         LIMIT 10
     ''').fetchall()
@@ -513,15 +655,21 @@ def dashboard():
     content = '''
     <div class="space-y-8">
         <div class="bg-zinc-950/90 backdrop-blur-md p-6 rounded-xl border border-zinc-800 shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-            <div>
-                <div class="text-xs text-red-500 font-bold uppercase tracking-wider mb-1">Employee Operational Profile</div>
-                <h2 class="text-2xl font-bold text-white">{{ session['user'] }}</h2>
-                <div class="text-xs text-zinc-400 mt-1 flex flex-wrap gap-2">
-                    <span class="bg-zinc-900 px-2.5 py-1 rounded border border-zinc-800">🏢 {{ session.get('department') }}</span>
-                    <span class="bg-zinc-900 px-2.5 py-1 rounded border border-zinc-800">📍 {{ session.get('plant_location') }}</span>
+            <div class="flex items-center space-x-4">
+                <button @click="profileWidgetOpen = true" class="text-4xl bg-black p-3 rounded-xl border border-zinc-800 hover:border-red-600 transition-all shadow-lg group relative">
+                    {{ session.get('avatar', '🤖') }}
+                    <span class="absolute -bottom-1 -right-1 text-[10px] bg-red-600 text-white font-bold px-1 rounded">✏️</span>
+                </button>
+                <div>
+                    <div class="text-xs text-red-500 font-bold uppercase tracking-wider mb-0.5">Employee Operational Profile</div>
+                    <h2 class="text-2xl font-bold text-white">{{ session.get('nickname') or session['user'] }} <span class="text-xs text-zinc-500">({{ session['user'] }})</span></h2>
+                    <div class="text-xs text-zinc-400 mt-1 flex flex-wrap gap-2">
+                        <span class="bg-zinc-900 px-2.5 py-1 rounded border border-zinc-800">🏢 {{ session.get('department') }}</span>
+                        <span class="bg-zinc-900 px-2.5 py-1 rounded border border-zinc-800">📍 {{ session.get('plant_location') }}</span>
+                    </div>
                 </div>
             </div>
-            <div class="bg-black p-4 rounded-xl border border-zinc-800 text-center min-w-[140px]">
+            <div class="bg-black p-4 rounded-xl border border-zinc-800 text-center min-w-[140px] w-full md:w-auto">
                 <div class="text-[10px] text-zinc-500 uppercase font-bold tracking-wider">Total Cumulative Score</div>
                 <div class="text-2xl font-black text-white mt-0.5">{{ user_best['best_score'] or 0 }} <span class="text-xs font-normal text-zinc-400">PTS</span></div>
             </div>
@@ -595,7 +743,10 @@ def dashboard():
                         {% for r in rankings %}
                         <tr class="hover:bg-zinc-900/50">
                             <td class="p-3 font-bold text-red-500">{{ loop.index }}</td>
-                            <td class="p-3 font-bold text-white">{{ r['username'] }}</td>
+                            <td class="p-3 font-bold text-white flex items-center space-x-2">
+                                <span class="bg-black border border-zinc-800 px-1.5 py-0.5 rounded text-sm">{{ r['avatar'] or '🤖' }}</span>
+                                <span>{{ r['nickname'] or r['username'] }}</span>
+                            </td>
                             <td class="p-3 text-zinc-400">{{ r['department'] }}</td>
                             <td class="p-3 text-zinc-400">{{ r['plant_location'] }}</td>
                             <td class="p-3 font-bold text-white bg-zinc-900/80 px-2 py-1 rounded">{{ r['score'] }} pts</td>
@@ -759,7 +910,7 @@ def admin_panel():
         conn.commit()
         flash("New incident scenario published!", "success")
 
-    users = conn.execute("SELECT id, username, role, department, plant_location FROM users").fetchall()
+    users = conn.execute("SELECT id, username, nickname, avatar, role, department, plant_location FROM users").fetchall()
     q_count = conn.execute("SELECT COUNT(*) FROM questions").fetchone()[0]
     conn.close()
 
@@ -835,6 +986,7 @@ def admin_panel():
                     <thead class="bg-black text-zinc-400 uppercase tracking-wider">
                         <tr>
                             <th class="p-3">ID</th>
+                            <th class="p-3">Badge & Nickname</th>
                             <th class="p-3">Username</th>
                             <th class="p-3">Department</th>
                             <th class="p-3">Plant Facility</th>
@@ -845,7 +997,11 @@ def admin_panel():
                         {% for u in users %}
                         <tr>
                             <td class="p-3">{{ u['id'] }}</td>
-                            <td class="p-3 font-bold text-white">{{ u['username'] }}</td>
+                            <td class="p-3 font-bold text-white flex items-center space-x-2">
+                                <span class="bg-black border border-zinc-800 px-1.5 py-0.5 rounded text-sm">{{ u['avatar'] or '🤖' }}</span>
+                                <span>{{ u['nickname'] or u['username'] }}</span>
+                            </td>
+                            <td class="p-3 text-zinc-400">{{ u['username'] }}</td>
                             <td class="p-3 text-zinc-400">{{ u['department'] }}</td>
                             <td class="p-3 text-zinc-400">{{ u['plant_location'] }}</td>
                             <td class="p-3">
