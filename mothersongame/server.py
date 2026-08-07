@@ -5,7 +5,7 @@ import json
 import random
 import urllib.request
 from functools import wraps
-from flask import Flask, render_template_string, request, redirect, url_for, session, flash
+from flask import Flask, render_template_string, request, redirect, url_for, session, flash, Response
 from werkzeug.security import generate_password_hash, check_password_hash
 
 app = Flask(__name__)
@@ -14,6 +14,9 @@ app.secret_key = os.environ.get("SECRET_KEY", "motherson_enterprise_global_2026_
 DB_NAME = os.path.join(os.path.dirname(__file__), "motherson_portal.db")
 
 MOTHERSON_LOGO_SVG = '<svg class="h-8 w-auto" viewBox="0 0 340 60" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="340" height="60" rx="6" fill="#FFFFFF"/><g transform="translate(12, 10)"><path d="M0 40 V0 L12 24 L24 0 V40 H16 V16 L12 24 L8 16 V40 H0 Z" fill="#E11D48"/><path d="M18 40 V15 L26 31 L34 15 V40 H28 V24 L26 28 L24 24 V40 H18 Z" fill="#E11D48" opacity="0.85"/></g><text x="62" y="41" font-family="Arial, sans-serif" font-weight="900" font-size="28" fill="#000000" letter-spacing="3">MOTHERSON</text></svg>'
+
+# Small red Motherson 'M' mark icon specifically for browser tabs
+FAVICON_SVG = '''<svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="40" height="40" rx="8" fill="#000000"/><g transform="translate(8, 8)"><path d="M0 24 V0 L7.2 14.4 L14.4 0 V24 H9.6 V9.6 L7.2 14.4 L4.8 9.6 V24 H0 Z" fill="#E11D48"/><path d="M10.8 24 V9 L15.6 18.6 L20.4 9 V24 H16.8 V14.4 L15.6 16.8 L14.4 14.4 V24 H10.8 Z" fill="#E11D48" opacity="0.85"/></g></svg>'''
 
 DEPARTMENTS = [
     "IT & Digital Infrastructure",
@@ -94,7 +97,6 @@ def init_db():
         )
     ''')
     
-    # Safe schema additions for existing SQLite databases
     try:
         cursor.execute("ALTER TABLE users ADD COLUMN nickname TEXT DEFAULT ''")
     except sqlite3.OperationalError:
@@ -134,7 +136,6 @@ def init_db():
         )
     ''')
     
-    # Ensure standard admin exists without wiping user edits
     cursor.execute("SELECT * FROM users WHERE username = 'admin'")
     if not cursor.fetchone():
         admin_hash = generate_password_hash("Admin#Motherson2026!")
@@ -278,6 +279,7 @@ HTML_LAYOUT = """
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Motherson | IT Command Portal</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.ico">
     <script src="https://cdn.tailwindcss.com"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <style>
@@ -360,7 +362,6 @@ HTML_LAYOUT = """
         {% endif %}
     </nav>
 
-    <!-- PROFILE MANAGEMENT WIDGET -->
     {% if session.get('user') %}
     <div x-show="profileWidgetOpen" x-cloak class="fixed inset-0 z-50 overflow-y-auto bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
         <div @click.away="profileWidgetOpen = false" class="bg-zinc-950 border border-red-600/60 rounded-xl max-w-lg w-full p-6 shadow-2xl space-y-6 relative">
@@ -459,6 +460,10 @@ HTML_LAYOUT = """
 def render_page(content, **context):
     full_template = HTML_LAYOUT.replace('{% block content %}{% endblock %}', content)
     return render_template_string(full_template, logo_svg=MOTHERSON_LOGO_SVG, departments=DEPARTMENTS, plants=PLANT_LOCATIONS, avatars=AVATARS, **context)
+
+@app.route('/favicon.ico')
+def favicon():
+    return Response(FAVICON_SVG, mimetype='image/svg+xml')
 
 @app.route('/')
 def index():
@@ -640,7 +645,6 @@ def update_profile():
 def dashboard():
     conn = get_db()
     
-    # Retrieves all accounts with scores, outer joined to render registered accounts properly
     rankings = conn.execute('''
         SELECT u.username, u.nickname, u.avatar, u.department, u.plant_location, 
                COALESCE(SUM(s.score), 0) as score, 
