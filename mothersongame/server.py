@@ -11,27 +11,21 @@ from werkzeug.security import generate_password_hash, check_password_hash
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "motherson_enterprise_global_2026_key")
 
-# Database path suitable for Render
+# Database path suitable for Render persistent/local execution
 DB_NAME = os.path.join(os.path.dirname(__file__), "motherson_portal.db")
 
 # =========================================================================
-# OFFICIAL MOTHERSON SVG LOGO (High-contrast, zero external dependencies)
+# OFFICIAL MOTHERSON SVG LOGO (High-contrast, pure inline code)
 # =========================================================================
 MOTHERSON_LOGO_SVG = """
 <svg class="h-8 w-auto" viewBox="0 0 340 60" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <!-- Background Container -->
     <rect width="340" height="60" rx="6" fill="#FFFFFF"/>
-    
-    <!-- Red Interlocking M Motif -->
     <g transform="translate(12, 10)">
         <path d="M0 40 V0 L12 24 L24 0 V40 H16 V16 L12 24 L8 16 V40 H0 Z" fill="#E11D48"/>
         <path d="M18 40 V15 L26 31 L34 15 V40 H28 V24 L26 28 L24 24 V40 H18 Z" fill="#E11D48" opacity="0.85"/>
     </g>
-    
-    <!-- Corporate Wordmark -->
     <text x="62" y="41" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-weight="900" font-size="28" fill="#000000" letter-spacing="3">MOTHERSON</text>
 </svg>
-"""
 """
 
 DEPARTMENTS = [
@@ -90,7 +84,7 @@ ROOMS = [
 ]
 
 # =========================================================================
-# 1. DATABASE INITIALIZATION
+# 1. DATABASE INITIALIZATION & SEEDING
 # =========================================================================
 def get_db():
     conn = sqlite3.connect(DB_NAME)
@@ -190,7 +184,6 @@ def seed_questions(cursor):
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ''', (room_id, idx, item[0], item[1], item[2], item[3], item[4], item[5], item[6], 100))
 
-# Initialize database on app startup
 init_db()
 
 # =========================================================================
@@ -334,7 +327,7 @@ HTML_LAYOUT = """
         <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex items-center justify-between h-16">
                 <div class="flex items-center space-x-3">
-                    <a href="/dashboard" class="flex items-center bg-black p-1 rounded border border-zinc-800 hover:border-brand-red transition-colors">
+                    <a href="/dashboard" class="flex items-center p-1 rounded transition-colors">
                         ''' + MOTHERSON_LOGO_SVG + '''
                     </a>
                     <span class="hidden sm:inline-block text-xs font-semibold uppercase tracking-widest text-zinc-400 border-l border-zinc-800 pl-3">
@@ -444,7 +437,7 @@ def register():
     content = '''
     <div class="max-w-md mx-auto my-6 bg-zinc-950/90 backdrop-blur-md p-6 sm:p-8 rounded-xl border border-brand-red/50 shadow-2xl">
         <div class="text-center mb-6">
-            <div class="inline-block bg-black p-2 rounded-lg border border-zinc-800 shadow-lg mb-3">
+            <div class="inline-block p-1 rounded-lg mb-3">
                 ''' + MOTHERSON_LOGO_SVG + '''
             </div>
             <h2 class="text-2xl font-bold text-white tracking-tight">Employee Registration</h2>
@@ -486,7 +479,6 @@ def register():
         </p>
     </div>
     '''
-    # PASSED REQUIRED VARIABLES: departments & plants
     return render_template_string(
         HTML_LAYOUT.replace('{% block content %}{% endblock %}', content), 
         departments=DEPARTMENTS, 
@@ -515,7 +507,7 @@ def login():
     content = '''
     <div class="max-w-md mx-auto my-8 bg-zinc-950/90 backdrop-blur-md p-6 sm:p-8 rounded-xl border border-brand-red/50 shadow-2xl">
         <div class="text-center mb-6">
-            <div class="inline-block bg-black p-2 rounded-lg border border-zinc-800 shadow-lg mb-3">
+            <div class="inline-block p-1 rounded-lg mb-3">
                 ''' + MOTHERSON_LOGO_SVG + '''
             </div>
             <h2 class="text-2xl font-bold text-white tracking-tight">System Login</h2>
