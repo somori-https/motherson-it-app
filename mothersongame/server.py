@@ -23,7 +23,7 @@ def init_db():
     conn = get_db()
     cursor = conn.cursor()
     
-    # Users table: STRICT ROLE SYSTEM ('operator' by default)
+    # Users table
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS users (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -58,11 +58,12 @@ def init_db():
         )
     ''')
     
-    # Seed System Admin (HARDCODED STRONG HASH)
-    # Default Admin Password: Admin#Motherson2026!
+    # FORCE UPDATE ADMIN ACCOUNT WITH NEW SECURE HASH
     admin_hash = generate_password_hash("Admin#Motherson2026!")
     cursor.execute("SELECT * FROM users WHERE username = 'admin'")
-    if not cursor.fetchone():
+    if cursor.fetchone():
+        cursor.execute("UPDATE users SET password_hash = ?, role = 'admin' WHERE username = 'admin'", (admin_hash,))
+    else:
         cursor.execute("INSERT INTO users (username, password_hash, role) VALUES ('admin', ?, 'admin')", (admin_hash,))
     
     # Seed default sample question if empty
