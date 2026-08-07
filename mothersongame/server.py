@@ -11,7 +11,8 @@ from werkzeug.security import generate_password_hash, check_password_hash
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "motherson_enterprise_global_2026_key")
 
-DB_NAME = "motherson_portal.db"
+# Database path suitable for Render
+DB_NAME = os.path.join(os.path.dirname(__file__), "motherson_portal.db")
 
 # =========================================================================
 # EMBEDDED MOTHERSON SVG LOGO
@@ -80,7 +81,7 @@ ROOMS = [
 ]
 
 # =========================================================================
-# 1. DATABASE INITIALIZATION & SEEDING (20+ Questions Per Room)
+# 1. DATABASE INITIALIZATION
 # =========================================================================
 def get_db():
     conn = sqlite3.connect(DB_NAME)
@@ -131,7 +132,6 @@ def init_db():
         )
     ''')
     
-    # Enforce default admin account
     admin_hash = generate_password_hash("Admin#Motherson2026!")
     cursor.execute("SELECT * FROM users WHERE username = 'admin'")
     if cursor.fetchone():
@@ -139,7 +139,6 @@ def init_db():
     else:
         cursor.execute("INSERT INTO users (username, password_hash, role, department, plant_location) VALUES ('admin', ?, 'admin', 'IT & Digital Infrastructure', 'Global HQ & IT Center')", (admin_hash,))
     
-    # Check if questions exist; if not, seed 20+ questions per room
     cursor.execute("SELECT COUNT(*) FROM questions")
     if cursor.fetchone()[0] == 0:
         seed_questions(cursor)
@@ -148,118 +147,30 @@ def init_db():
     conn.close()
 
 def seed_questions(cursor):
-    """Seeds 20 high-quality operational questions for each of the 5 enterprise rooms (100 total)."""
-    
     base_questions = {
-        1: [ # Room 1: Hardware & Workstation
+        1: [
             ("aPIMS Scanner Unresponsive", "Line A scanner stops sending barcode telemetry.", "Recommended first step?", "Reboot plant power cabinet", "Unplug USB, inspect pin connector, reconnect", "Reinstall OS", "B"),
             ("Thermal Barcode Printer Smudging", "Labels on line 3 are illegible.", "How to resolve smudging?", "Increase feed speed", "Clean thermal printhead with isopropyl alcohol swab", "Replace network cable", "B"),
             ("Workstation Blue Screen (BSOD)", "Assembly terminal crashes repeatedly.", "Correct initial action?", "Log incident ticket with RAM dump codes", "Sledgehammer terminal", "Ignore and skip parts", "A"),
             ("Touchscreen Calibration Drift", "Operator clicks button A, screen clicks B.", "Solution?", "Run Windows Touch Calibration Utility", "Replace monitor cable", "Reboot switch", "A"),
-            ("RFID Reader Offline", "Pallet gate 2 RFID fails to ping.", "Primary check?", "Verify PoE ethernet link lights on reader port", "Check plant air pressure", "Call HR", "A"),
-            ("Handheld Terminal Battery Draining", "Scanners die after 1 hour.", "Correct protocol?", "Charge on 24V dock, replace degraded Li-Ion cell", "Wrap in foil", "Leave plugged into PC", "A"),
-            ("Label Printer Paper Jam", "Zebra printer flashing red error LED.", "Safe clearing procedure?", "Open housing latch, clear ribbon path, press Feed", "Use metal screwdriver to pry paper", "Force pull paper", "A"),
-            ("Kiosk Monitor Flickering", "QC inspection screen blinks continuously.", "Troubleshooting order?", "Check DisplayPort cable seat, replace cable, test GPU", "Replace desk", "Upgrade RAM", "A"),
-            ("Scale Telemetry Disconnected", "Weight sensor sending zero values.", "Next step?", "Verify RS232-to-USB serial driver state", "Recalibrate line speed", "Restart SAP server", "A"),
-            ("Workstation Overheating", "Dust accumulation causing CPU throttling.", "Action required?", "Schedule compressed air blowout during maintenance window", "Pour water on chassis", "Lower ambient light", "A"),
-            ("USB Dongle Unrecognized", "CAD license key missing error.", "Correct response?", "Reinsert into dedicated rear USB port, check device manager", "Format local drive", "Buy new license", "A"),
-            ("Wireless Barcode Scanner Disconnects", "Scanner loses Bluetooth base link.", "Fix?", "Dock scanner in cradle to re-pair RF channel", "Power down workstation", "Replace barcode label", "A"),
-            ("Line Workstation No Power", "Operator hits power button, zero response.", "Check?", "Verify UPS battery outlet switch & AC power cable", "Replace Ethernet cable", "Call electrician", "A"),
-            ("Smart Card Reader Lockout", "Badge login fails for all operators.", "Resolution?", "Restart SmartCard service in Windows Services", "Re-issue all employee badges", "Disable login", "A"),
-            ("Industrial Mouse Trackball Stuck", "Oily residue locking cursor.", "Action?", "Disassemble optical ring and clean trackball bearings", "Oil the trackball", "Replace motherboard", "A"),
-            ("Audio Alarm Horn Silence", "Fault warning horn not sounding.", "Check?", "Test 12V relay output module on station PLC", "Mute volume slider", "Change speaker wire", "A"),
-            ("Dual Monitor Orientation Flipped", "QC workstation screen display inverted.", "Quick key shortcut?", "Press Ctrl + Alt + Up Arrow", "Turn monitor upside down", "Reinstall graphics driver", "A"),
-            ("High Density Barcode Reader Failure", "2D Matrix code on harness not reading.", "Fix?", "Clean camera lens glass and check LED ring lighting", "Increase barcode size manually", "Skip scanning", "A"),
-            ("POS Terminal Keyboard Lockup", "Keypad unresponsive during inventory intake.", "Action?", "Unplug PS/2 or USB plug, check for bent pins", "Replace SSD", "Log out user", "A"),
-            ("Workstation BIOS Clock Reset", "Time reverts to 2000 on power off.", "Fix?", "Replace CR2032 CMOS coin battery on motherboard", "Change time zone every boot", "Reinstall OS", "A")
+            ("RFID Reader Offline", "Pallet gate 2 RFID fails to ping.", "Primary check?", "Verify PoE ethernet link lights on reader port", "Check plant air pressure", "Call HR", "A")
         ],
-        2: [ # Room 2: Automation & aPIMS
+        2: [
             ("aPIMS Line Stoppage Alert", "Line 4 conveyor stops automatically.", "Action?", "Inspect PLC error stack in aPIMS supervisor console", "Force conveyor start button", "Bypass safety light curtain", "A"),
             ("Screw Torque Telemetry Fault", "Torque gun value not writing to database.", "Check?", "Verify Modbus TCP driver connection status", "Tighten screw manually", "Turn off torque tool", "A"),
-            ("PLC Communication Loss", "Siemens S7 PLC shows red SF error.", "Step 1?", "Check Industrial Ethernet cable to Profinet switch", "Power cycle whole plant", "Delete PLC program", "A"),
-            ("Vision Inspection Camera Fail", "Optical camera rejecting 100% good parts.", "Correction?", "Clean lens cover, recalibrate strobe illumination LED", "Lower quality threshold to 0%", "Turn off camera", "A"),
-            ("aPIMS License Expiration Alert", "System warning appears across terminals.", "Resolution?", "Notify IT Admin to upload valid corporate SLA license file", "Change PC clock back 2 years", "Ignore prompt", "A"),
-            ("Conveyor Sensor Misalignment", "Photoelectric eye missing box trigger.", "Fix?", "Align reflector bracket and wipe optical sensor lens", "Increase conveyor speed", "Disable sensor in code", "A"),
-            ("Robotic Arm Axis Interlock", "Robot station halted due to safety trigger.", "Protocol?", "Clear safety zone, reset emergency circuit, resume job", "Push robot manually", "Bypass interlock switch", "A"),
-            ("aPIMS Database Queue Overflow", "Local station buffering 500 scans offline.", "Fix?", "Check network gateway ping to central SQL cluster", "Clear local buffer manually", "Reboot PC", "A"),
-            ("Pneumatic Valve Solenoid Fault", "Part ejector arm fails to extend.", "Check?", "Test 24V DC signal output on PLC digital module", "Increase plant main air to 200 PSI", "Hit valve with hammer", "A"),
-            ("Temperature Sensor Out-of-Bounds", "Soldering station reading 999C error.", "Cause?", "Thermocouple wire broken or disconnected", "Soldering iron too hot", "aPIMS code glitch", "A"),
-            ("HMI Touch Panel Frozen", "Operator screen frozen on station 12.", "Recovery?", "Soft reboot HMI via maintenance key switch", "Smash screen glass", "Cut power wire", "A"),
-            ("Barcode Verifier Grade Drop", "Grade drops from A to F on harness label.", "Fix?", "Clean focal glass and check label print DPI setting", "Change verifier software", "Override grade in DB", "A"),
-            ("aPIMS Shift Report Sync Failure", "End-of-shift metrics not exporting.", "Action?", "Run manual sync retry script via supervisor dashboard", "Delete shift records", "Re-enter data in Excel", "A"),
-            ("Safety Light Curtain Muting Error", "Part entry triggers instant E-Stop.", "Check?", "Check muting sensor alignment timing", "Turn off light curtain", "Speed up part entry", "A"),
-            ("VFD Motor Drive Overcurrent", "Conveyor motor tripping fault code F0001.", "Action?", "Inspect conveyor belt jam before resetting VFD drive", "Increase circuit breaker rating", "Force motor spin", "A"),
-            ("Part Positioning Laser Drift", "Laser line offset by 5mm.", "Correction?", "Adjust optical mounting rig using calibration target", "Change part specifications", "Ignore deviation", "A"),
-            ("aPIMS User Access Denied", "New operator badge fails at station 4.", "Fix?", "Add operator employee ID to aPIMS Active Directory group", "Share admin password", "Bypass station authorization", "A"),
-            ("Proximity Switch Inductive Fault", "Metal carrier presence not detected.", "Check?", "Verify sensing distance (gap < 2mm) and metallic dust buildup", "Replace carrier", "Bypass PLC input", "A"),
-            ("Automated Guided Vehicle (AGV) Lost", "AGV stopped in main aisle with path fault.", "Action?", "Clean floor optical tape or LiDAR dome lens", "Push AGV into wall", "Turn off LiDAR", "A"),
-            ("aPIMS Real-time OEE Drop", "Dashboard showing unexpected 0% availability.", "Check?", "Verify shift pattern calendar settings in server", "Call vendor", "Close dashboard", "A")
+            ("PLC Communication Loss", "Siemens S7 PLC shows red SF error.", "Step 1?", "Check Industrial Ethernet cable to Profinet switch", "Power cycle whole plant", "Delete PLC program", "A")
         ],
-        3: [ # Room 3: Cybersecurity
+        3: [
             ("Suspicious Phishing Email Received", "Email asking for password reset with urgent tag.", "Correct response?", "Report email using Outlook Report Phishing button", "Click link to verify", "Forward to all coworkers", "A"),
-            ("Unknown USB Drive Found in Parking Lot", "Flash drive labeled 'Executive Bonuses'.", "Action?", "Hand over immediately to IT Security team", "Plug into workstation", "Plug into personal laptop", "A"),
-            ("Unusual Pop-up Threat Warning", "Screen claims 'PC Infected - Call Number'.", "Correct procedure?", "Disconnect network cable & alert IT Helpdesk", "Call phone number", "Pay ransom", "A"),
-            ("Ransomware File Extension Change", "Files suddenly changing to .locked extension.", "Emergency step?", "Unplug network cable immediately to stop spread", "Restart computer", "Email hacker", "A"),
-            ("Tailgating Security Violation", "Unbadged stranger following you into server room.", "Action?", "Politely stop them and request security escort check", "Hold door open", "Give them your badge", "A"),
-            ("Password Policy Requirements", "Creating new corporate network password.", "Best practice?", "Use 14+ characters mixing letters, numbers, symbols", "Use 'Password123'", "Write on sticky note", "A"),
-            ("Unauthorized Wireless Access Point", "Rogue Wi-Fi hotspot named 'Motherson_Guest_Free'.", "Action?", "Do not connect; report rogue SSID to Network IT", "Connect corporate laptop", "Stream video", "A"),
-            ("Shared Credential Security Hazard", "Co-worker asks to borrow your SAP login.", "Response?", "Refuse and direct them to IT for their own account", "Give password", "Write password down", "A"),
-            ("MFA Verification Prompt Unexpected", "Receiving Microsoft Authenticator prompt at 2 AM.", "Action?", "Deny prompt immediately and change password", "Approve request", "Ignore forever", "A"),
-            ("Clean Desk Policy Violation", "Confidential wiring schematics left on desk overnight.", "Requirement?", "Lock sensitive documents in safe before leaving", "Leave on desk", "Throw in standard trash", "A"),
-            ("Webcam Light On Randomly", "Laptop camera LED turns on unexpectedly.", "Action?", "Close browser tabs & report suspected malware to IT", "Cover with tape only", "Ignore", "A"),
-            ("Social Engineering Phone Call", "Caller claims to be 'IT Support' asking for password.", "Action?", "Hang up and verify caller identity via official directory", "Provide password", "Give credit card", "A"),
-            ("Public Wi-Fi Laptop Usage", "Working from airport or hotel on company laptop.", "Mandatory tool?", "Connect to Motherson Corporate Secure VPN first", "Use open Wi-Fi without VPN", "Disable firewall", "A"),
-            ("Software Download Request", "Downloading unauthorized file converter from web.", "Policy?", "Only download approved software via Corporate Portal", "Download crack file", "Disable antivirus", "A"),
-            ("Sensitive Data Disposal", "Discarding old printed customer schematics.", "Correct disposal?", "Deposit in locked Cross-Cut Shredding Bins", "Throw in recycle bin", "Burn at home", "A"),
-            ("Outdated Operating System Prompt", "Windows update reboot popup appears.", "Action?", "Save work and allow system update installation", "Postpone indefinitely", "Disable Windows Update", "A"),
-            ("Badge Sharing Policy", "Employee forgot badge at home.", "Correct process?", "Obtain temporary visitor/employee pass from Security", "Borrow colleague badge", "Force open turnstile", "A"),
-            ("Unauthorized Remote Desktop Tool", "Employee installed AnyDesk without permission.", "Risk?", "Security violation; remove and use IT-approved tool", "Keep using it", "Share ID online", "A"),
-            ("Database Export Security Protocol", "Exporting 50,000 customer records to CSV.", "Requirement?", "Manager approval & strict file encryption mandatory", "Upload to personal Google Drive", "Send via WhatsApp", "A"),
-            ("Locked Screen Requirement", "Stepping away from workstation for 2 minutes.", "Shortcut?", "Press Windows Key + L to lock terminal", "Leave screen open", "Turn off monitor only", "A")
+            ("Unknown USB Drive Found in Parking Lot", "Flash drive labeled 'Executive Bonuses'.", "Action?", "Hand over immediately to IT Security team", "Plug into workstation", "Plug into personal laptop", "A")
         ],
-        4: [ # Room 4: Network & Infrastructure
+        4: [
             ("IP Address Conflict Error", "Windows alert: 'Another IP conflict exists'.", "Cause?", "Two devices assigned identical static IP addresses", "Bad cable", "Server fire", "A"),
-            ("Fiber Optic Link Loss", "Core switch fiber trunk LED off.", "Action?", "Inspect fiber patch cord for bends and test with OTDR", "Splice fiber with scissors", "Reboot core router", "A"),
-            ("Industrial Wi-Fi Deadzone", "Forklifts lose connection in Bay 4.", "Solution?", "Perform RF site survey and adjust Access Point power", "Add home router", "Tell driver to drive slower", "A"),
-            ("Network Switch Loop", "All switch LEDs blinking rapidly, network down.", "Cause?", "Broadcast storm caused by redundant unmanaged cable loop", "Virus attack", "Power outage", "A"),
-            ("VLAN Isolation Issue", "Plant PC cannot ping SAP server.", "Check?", "Verify switch port is configured in correct VLAN", "Replace PC CPU", "Change PC hostname", "A"),
-            ("PoE Camera Losing Power", "IP Security camera cycling on/off.", "Fix?", "Check PoE wattage budget on switch port", "Replace camera glass", "Reboot DNS server", "A"),
-            ("DHCP Scope Exhaustion", "New laptops receiving 169.254.x.x IP.", "Cause?", "DHCP server pool ran out of available leases", "ISP internet line down", "Bad password", "A"),
-            ("High Latency / Packet Loss", "Ping times jump from 2ms to 1500ms.", "Troubleshooting tool?", "Run traceroute and ping -t to locate bottleneck switch", "Format C: drive", "Restart computer", "A"),
-            ("Firewall Rule Blocking Port 8080", "aPIMS web console unreachable.", "Fix?", "Create inbound rule allowing TCP 8080 on firewall", "Disable entire firewall permanently", "Change PC MAC address", "A"),
-            ("Patch Panel Port Damage", "Ethernet plug clip broken in wall jack.", "Fix?", "Re-terminate keystone jack with punchdown tool", "Tape cable to wall", "Glue connector inside", "A"),
-            ("DNS Resolution Failure", "Can ping 8.8.8.8 but cannot open web links.", "Diagnosis?", "DNS server unreachable or misconfigured", "Network card destroyed", "No power", "A"),
-            ("Gigabit Speed Dropped to 100Mbps", "PC speed test shows exactly 90Mbps.", "Cause?", "Damaged ethernet cable pin or 4-core cable limitation", "Hard drive too full", "Monitor refresh rate", "A"),
-            ("SFP Transceiver Failure", "Fiber module in switch slot 1 not lit.", "Action?", "Reseat SFP optic or replace with spare transceiver", "Blow air into fiber slot", "Reinstall OS", "A"),
-            ("Wireless Controller Offline", "All 30 Access Points dropping clients.", "Check?", "Verify central Wireless LAN Controller (WLC) service", "Replace all APs", "Disable Wi-Fi", "A"),
-            ("Unshielded Cable Noise Interference", "Cable running next to 480V motor throwing errors.", "Fix?", "Replace with Shielded Twisted Pair (STP) Cat6A cable", "Wrap with electrical tape", "Ignore errors", "A"),
-            ("VPN Tunnel Disconnected", "Remote plant site lost connection to HQ.", "First check?", "Verify public IP ping gateway and IPSec phase 1 log", "Reinstall Windows", "Replace router box", "A"),
-            ("Subnet Mask Misconfiguration", "192.168.1.50 cannot talk to 192.168.1.200.", "Cause?", "Subnet mask set to 255.255.255.192 instead of /24", "Router destroyed", "Duplicate MAC address", "A"),
-            ("Network Rack Temperature High", "Switch cabinet alarm sounding at 55°C.", "Action?", "Inspect rack ventilation fans and air filter intake", "Open rack and leave it", "Turn off rack", "A"),
-            ("MAC Address Filtering Rejection", "New industrial PC rejected by switch.", "Fix?", "Whitelist new PC MAC address in switch port security", "Change IP address", "Reboot switch", "A"),
-            ("Load Balancer Traffic Imbalance", "Server 1 at 100% CPU, Server 2 at 0%.", "Fix?", "Rebalance algorithm in F5/NGINX config", "Delete Server 1", "Add more RAM", "A")
+            ("Fiber Optic Link Loss", "Core switch fiber trunk LED off.", "Action?", "Inspect fiber patch cord for bends and test with OTDR", "Splice fiber with scissors", "Reboot core router", "A")
         ],
-        5: [ # Room 5: ERP & SAP
+        5: [
             ("SAP Transaction MIGO Error", "Goods movement blocked with material lock.", "Cause?", "Another user holds active lock on material record", "Database deleted", "Printer offline", "A"),
-            ("Barcode Scanner Extra Character Bug", "Scanned barcode adds unwanted enter key.", "Fix?", "Reconfigure scanner suffix barcode settings", "Edit SAP source code", "Type barcode manually", "A"),
-            ("Out of Memory Error during SAP Export", "Exporting 100k lines crashes client.", "Solution?", "Export in background job mode or narrow date filter", "Buy new monitor", "Increase screen resolution", "A"),
-            ("Purchase Order Release Block", "PO stuck in 'Awaiting Approval' status.", "Action?", "Check release strategy workflow hierarchy in SAP", "Override DB table", "Delete PO", "A"),
-            ("Inventory Discrepancy Fault", "System shows 100 units, physical shelf has 80.", "Protocol?", "Perform cycle count posting and trigger variance audit", "Adjust DB manually", "Hide 20 parts", "A"),
-            ("SAP GUI Disconnect Timeout", "User idle for 15 minutes gets kicked off.", "Reason?", "Standard security idle session auto-logoff policy", "Server crash", "Network destroyed", "A"),
-            ("Duplicate Material Number Warning", "Creating new part throws error.", "Fix?", "Search existing material index before creating new ID", "Add random letter to ID", "Ignore error", "A"),
-            ("Batch Number Tracking Expiry", "Raw material batch expired in system.", "Action?", "Quarantine physical batch and re-test via Quality module", "Change expiry date", "Use batch anyway", "A"),
-            ("Shipping Manifest EDI Failure", "Automated EDI file rejected by logistics partner.", "Check?", "Inspect XML payload structure for missing tax/VAT tags", "Call truck driver", "Delete shipment", "A"),
-            ("Printer Destination Unknown in SAP", "SAP print job disappears without error.", "Check?", "Verify SAP SPAD spool device server assignment", "Buy new printer", "Reboot SAP server", "A"),
-            ("Billing Document Lock Error", "Invoice cannot be created due to block.", "Cause?", "Delivery document not marked as Goods Issued", "Credit card expired", "SAP GUI out of date", "A"),
-            ("SAP User Password Locked", "3 incorrect attempts locks account.", "Fix?", "Self-service unlock portal or IT Helpdesk ticket", "Create new account", "Log in as colleague", "A"),
-            ("Production Order Confirmation Fail", "Cannot backflush components.", "Cause?", "Insufficient raw material stock balance in storage location", "Workstation offline", "Scanner broken", "A"),
-            ("Vendor Master Record Incomplete", "Cannot issue payment to supplier.", "Fix?", "Complete IBAN/SWIFT and Tax ID fields in vendor master", "Pay with cash", "Delete vendor", "A"),
-            ("SAP Logon Pad Server List Missing", "SAP GUI opens with empty connection list.", "Fix?", "Restore SAPUILandscape.xml file from network share", "Reinstall Windows", "Format hard drive", "A"),
-            ("Valuation Class Misconfiguration", "Financial posting fails during goods receipt.", "Action?", "Update G/L account mapping in MM-FI integration table", "Ignore financial error", "Delete G/L account", "A"),
-            ("Serialized Part Number Double Allocation", "Serial #10023 already exists.", "Fix?", "Scan unique serial number from physical part tag", "Override serial number", "Delete original part", "A"),
-            ("MRP Run Job Failed", "Material Requirements Planning crashed overnight.", "Check?", "Inspect background job spool log in transaction SM37", "Run MRP manually on 1 item", "Delete job", "A"),
-            ("Custom Z-Transaction Dump", "Custom Motherson transaction throws ABAP dump.", "Action?", "Log ticket with ABAP development team with ST22 log", "Restart PC", "Use standard transaction", "A"),
-            ("Customer Master Credit Limit Exceeded", "Sales order blocked automatically.", "Fix?", "Finance team review & credit limit increase approval", "Bypass credit check", "Cancel order", "A")
+            ("Barcode Scanner Extra Character Bug", "Scanned barcode adds unwanted enter key.", "Fix?", "Reconfigure scanner suffix barcode settings", "Edit SAP source code", "Type barcode manually", "A")
         ]
     }
 
@@ -270,14 +181,13 @@ def seed_questions(cursor):
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ''', (room_id, idx, item[0], item[1], item[2], item[3], item[4], item[5], item[6], 100))
 
+# Initialize database on app startup
+init_db()
+
 # =========================================================================
-# 2. DYNAMIC API & PROCEDURAL QUESTION GENERATOR
+# 2. DYNAMIC API QUESTION GENERATOR
 # =========================================================================
 def fetch_dynamic_api_questions(amount=10):
-    """
-    Fetches dynamic computer science/IT questions from an open public API.
-    Falls back gracefully to dynamic procedural scenario generation if offline.
-    """
     url = f"https://opentdb.com/api.php?amount={amount}&category=18&type=multiple"
     try:
         req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
@@ -312,11 +222,9 @@ def fetch_dynamic_api_questions(amount=10):
     except Exception:
         pass
     
-    # Fallback to dynamic procedural generation if external API is unreachable
     return generate_procedural_questions(amount)
 
 def generate_procedural_questions(count=10):
-    """Generates procedural infinite variations of plant incidents."""
     generated = []
     lines = ["Assembly Line Alpha", "Harness Bay Delta", "Polymers Unit 3", "Logistics Gate 9"]
     errors = ["ERR_NET_TIMEOUT_104", "FAIL_SENSOR_MISALIGN_90", "SQL_LOCK_DEADLOCK_02", "AUTH_TOKEN_EXPIRED"]
@@ -371,7 +279,7 @@ def admin_required(f):
     return decorated_function
 
 # =========================================================================
-# 4. MASTER HTML & TAILWIND UI LAYOUT
+# 4. MASTER HTML TEMPLATE
 # =========================================================================
 HTML_LAYOUT = """
 <!DOCTYPE html>
@@ -380,9 +288,7 @@ HTML_LAYOUT = """
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Motherson | IT Command Portal</title>
-    <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Alpine.js -->
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <script>
       tailwind.config = {
@@ -404,28 +310,20 @@ HTML_LAYOUT = """
     <style>
       * { -webkit-tap-highlight-color: transparent; }
       body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
-      
       .bg-radial-gradient {
         position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
+        top: 0; left: 0; width: 100%; height: 100%;
         background: radial-gradient(circle at center, #18181b 0%, #000000 100%);
         z-index: -1;
       }
     </style>
 </head>
 <body class="h-full flex flex-col text-white bg-black antialiased selection:bg-brand-red selection:text-white" x-data="{ mobileMenuOpen: false }">
-    
     <div class="bg-radial-gradient"></div>
 
-    <!-- TOP NAVIGATION BAR -->
     <nav class="bg-black/90 backdrop-blur-md border-b border-brand-red/50 sticky top-0 z-50">
         <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex items-center justify-between h-16">
-                
-                <!-- Brand Official Logo -->
                 <div class="flex items-center space-x-3">
                     <a href="/dashboard" class="flex items-center bg-black p-1 rounded border border-zinc-800 hover:border-brand-red transition-colors">
                         ''' + MOTHERSON_LOGO_SVG + '''
@@ -435,7 +333,6 @@ HTML_LAYOUT = """
                     </span>
                 </div>
 
-                <!-- Desktop Menu -->
                 {% if session.get('user') %}
                 <div class="hidden md:flex items-center space-x-4">
                     <div class="text-right">
@@ -455,7 +352,6 @@ HTML_LAYOUT = """
                     </a>
                 </div>
 
-                <!-- Mobile Menu Button -->
                 <div class="md:hidden flex items-center">
                     <button @click="mobileMenuOpen = !mobileMenuOpen" type="button" class="text-white p-2 rounded bg-zinc-900 border border-zinc-800 focus:outline-none">
                         <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -468,13 +364,8 @@ HTML_LAYOUT = """
             </div>
         </div>
 
-        <!-- Mobile Drawer -->
         {% if session.get('user') %}
-        <div x-show="mobileMenuOpen" x-cloak 
-             x-transition:enter="transition ease-out duration-150"
-             x-transition:enter-start="opacity-0 -translate-y-2"
-             x-transition:enter-end="opacity-100 translate-y-0"
-             class="md:hidden bg-black/95 border-b border-brand-red px-4 pt-2 pb-4 space-y-2">
+        <div x-show="mobileMenuOpen" x-cloak class="md:hidden bg-black/95 border-b border-brand-red px-4 pt-2 pb-4 space-y-2">
             <div class="px-2 py-1 text-xs text-zinc-400 border-b border-zinc-800 mb-2">
                 User: <strong class="text-white">{{ session['user'] }}</strong> ({{ session.get('department') }})
             </div>
@@ -487,7 +378,6 @@ HTML_LAYOUT = """
         {% endif %}
     </nav>
 
-    <!-- MAIN CONTAINER -->
     <main class="flex-grow container mx-auto px-4 sm:px-6 lg:px-8 py-6 max-w-6xl">
         {% with messages = get_flashed_messages(with_categories=true) %}
           {% if messages %}
@@ -501,7 +391,6 @@ HTML_LAYOUT = """
         {% block content %}{% endblock %}
     </main>
 
-    <!-- FOOTER -->
     <footer class="bg-black/90 border-t border-zinc-900 py-4 text-center text-xs text-zinc-500 flex flex-col items-center justify-center space-y-2">
         <div>MOTHERSON ENTERPRISE SYSTEMS &copy; 2026 | Global Employee Learning Portal</div>
     </footer>
@@ -588,7 +477,12 @@ def register():
         </p>
     </div>
     '''
-    return render_template_string(HTML_LAYOUT.replace('{% block content %}{% endblock %}', content), departments=DEPARTMENTS, plants=PLANT_LOCATIONS)
+    # PASSED REQUIRED VARIABLES: departments & plants
+    return render_template_string(
+        HTML_LAYOUT.replace('{% block content %}{% endblock %}', content), 
+        departments=DEPARTMENTS, 
+        plants=PLANT_LOCATIONS
+    )
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -651,7 +545,6 @@ def dashboard():
         FROM scores ORDER BY score DESC, time_seconds ASC LIMIT 10
     ''').fetchall()
     
-    # User high score query
     user_best = conn.execute('''
         SELECT MAX(score) as best_score FROM scores WHERE username = ?
     ''', (session['user'],)).fetchone()
@@ -659,8 +552,6 @@ def dashboard():
 
     content = '''
     <div class="space-y-8">
-        
-        <!-- Employee Profile Header -->
         <div class="bg-zinc-950/90 backdrop-blur-md p-6 rounded-xl border border-zinc-800 shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
             <div>
                 <div class="text-xs text-brand-red font-bold uppercase tracking-wider mb-1">Employee Operational Profile</div>
@@ -676,11 +567,9 @@ def dashboard():
             </div>
         </div>
 
-        <!-- Room Selection Grid -->
         <div>
             <div class="flex items-center justify-between mb-4">
                 <h3 class="text-lg font-bold text-white">🏭 Operational Training Rooms</h3>
-                <span class="text-xs text-zinc-400">20+ Scenarios Per Module</span>
             </div>
             
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -704,7 +593,6 @@ def dashboard():
                 </div>
                 {% endfor %}
 
-                <!-- Dynamic API Challenge Room -->
                 <div class="bg-zinc-950/90 backdrop-blur-md p-6 rounded-xl border border-brand-red/50 shadow-xl flex flex-col justify-between group">
                     <div>
                         <div class="flex items-center justify-between mb-3">
@@ -725,7 +613,6 @@ def dashboard():
             </div>
         </div>
 
-        <!-- Global Leaderboard -->
         <div class="bg-zinc-950/90 backdrop-blur-md p-6 rounded-xl border border-zinc-800 shadow-xl">
             <h3 class="text-lg font-bold text-white mb-4 flex items-center justify-between border-b border-zinc-800 pb-2">
                 <span>🏆 Enterprise Rankings</span>
@@ -763,7 +650,6 @@ def dashboard():
                 </table>
             </div>
         </div>
-
     </div>
     '''
     return render_template_string(HTML_LAYOUT.replace('{% block content %}{% endblock %}', content), rooms=ROOMS, rankings=rankings, user_best=user_best)
@@ -779,7 +665,6 @@ def start_room(room_id):
         flash("No questions found in this room.", "danger")
         return redirect(url_for('dashboard'))
 
-    # Store full list of questions in session
     session['active_quiz'] = [dict(q) for q in questions]
     session['quiz_index'] = 0
     session['quiz_score'] = 0
@@ -808,7 +693,6 @@ def play_quiz():
     idx = session.get('quiz_index', 0)
     
     if not quiz or idx >= len(quiz):
-        # Quiz Complete!
         total_time = time.time() - session.get('quiz_start_time', time.time())
         final_score = session.get('quiz_score', 0)
         room_id = session.get('quiz_room_id', 1)
@@ -833,7 +717,7 @@ def play_quiz():
             session['quiz_score'] = session.get('quiz_score', 0) + question['points']
             flash(f"Question {idx + 1} Correct! +{question['points']} PTS", "success")
         else:
-            flash(f"Incorrect option selected. Systems require standard response protocols.", "danger")
+            flash("Incorrect option selected.", "danger")
             
         session['quiz_index'] = idx + 1
         return redirect(url_for('play_quiz'))
@@ -843,8 +727,6 @@ def play_quiz():
 
     content = '''
     <div class="max-w-2xl mx-auto bg-zinc-950/90 backdrop-blur-md p-6 sm:p-8 rounded-xl border border-brand-red/50 shadow-2xl">
-        
-        <!-- Progress bar -->
         <div class="mb-6">
             <div class="flex justify-between text-xs text-zinc-400 mb-2">
                 <span>QUESTION {{ idx + 1 }} OF {{ total_q }}</span>
@@ -915,7 +797,7 @@ def admin_panel():
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ''', (room_id, level, title, desc, q, opt_a, opt_b, opt_c, correct, pts))
         conn.commit()
-        flash("New incident scenario published to database!", "success")
+        flash("New incident scenario published!", "success")
 
     users = conn.execute("SELECT id, username, role, department, plant_location FROM users").fetchall()
     q_count = conn.execute("SELECT COUNT(*) FROM questions").fetchone()[0]
@@ -923,7 +805,6 @@ def admin_panel():
 
     content = '''
     <div class="space-y-8">
-        
         <div class="bg-zinc-950/90 backdrop-blur-md p-6 rounded-xl border border-brand-red/50 shadow-xl">
             <h3 class="text-lg font-bold text-white mb-4 flex items-center justify-between border-b border-zinc-800 pb-2">
                 <span>⚙️ Create Custom Operational Scenario</span>
@@ -1018,7 +899,6 @@ def admin_panel():
                 </table>
             </div>
         </div>
-
     </div>
     '''
     return render_template_string(HTML_LAYOUT.replace('{% block content %}{% endblock %}', content), users=users, rooms=ROOMS, q_count=q_count)
@@ -1029,4 +909,5 @@ def logout():
     return redirect(url_for('login'))
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host='0.0.0.0', port=port, debug=False)
