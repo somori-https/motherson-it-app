@@ -15,14 +15,23 @@ app.secret_key = os.environ.get("SECRET_KEY", "motherson_enterprise_global_2026_
 DB_NAME = os.path.join(os.path.dirname(__file__), "motherson_portal.db")
 
 # =========================================================================
-# EMBEDDED MOTHERSON SVG LOGO
+# OFFICIAL MOTHERSON SVG LOGO (High-contrast, zero external dependencies)
 # =========================================================================
 MOTHERSON_LOGO_SVG = """
-<svg class="h-8 w-auto" viewBox="0 0 320 50" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <rect width="320" height="50" rx="4" fill="#000000"/>
-    <path d="M12 10H22L30 30L38 10H48V40H40V20L32 38H28L20 20V40H12V10Z" fill="#E11D48"/>
-    <text x="56" y="34" font-family="-apple-system, BlinkMacSystemFont, Arial, sans-serif" font-weight="900" font-size="24" fill="#FFFFFF" letter-spacing="2.5">MOTHERSON</text>
+<svg class="h-8 w-auto" viewBox="0 0 340 60" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <!-- Background Container -->
+    <rect width="340" height="60" rx="6" fill="#FFFFFF"/>
+    
+    <!-- Red Interlocking M Motif -->
+    <g transform="translate(12, 10)">
+        <path d="M0 40 V0 L12 24 L24 0 V40 H16 V16 L12 24 L8 16 V40 H0 Z" fill="#E11D48"/>
+        <path d="M18 40 V15 L26 31 L34 15 V40 H28 V24 L26 28 L24 24 V40 H18 Z" fill="#E11D48" opacity="0.85"/>
+    </g>
+    
+    <!-- Corporate Wordmark -->
+    <text x="62" y="41" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-weight="900" font-size="28" fill="#000000" letter-spacing="3">MOTHERSON</text>
 </svg>
+"""
 """
 
 DEPARTMENTS = [
