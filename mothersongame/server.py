@@ -11,7 +11,14 @@ app.secret_key = os.environ.get("SECRET_KEY", "motherson_logo_red_black_white_20
 DB_NAME = "motherson_portal.db"
 
 # Official Motherson Logo URL (Crisp Transparent PNG)
-MOTHERSON_LOGO_URL = "https://upload.wikimedia.org/wikipedia/commons/thumb/8/87/Motherson_Group_logo.svg/512px-Motherson_Group_logo.svg.png"
+# Inline SVG Logo - embedded directly so it never blocks or breaks
+MOTHERSON_LOGO_SVG = """
+<svg class="h-6 sm:h-7 w-auto" viewBox="0 0 320 60" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <rect width="320" height="60" rx="6" fill="#121212"/>
+    <path d="M20 15H32L42 38L52 15H64V45H54V26L45 45H39L30 26V45H20V15Z" fill="#E11D48"/>
+    <text x="75" y="38" font-family="Arial, Helvetica, sans-serif" font-weight="900" font-size="26" fill="#FFFFFF" letter-spacing="2">MOTHERSON</text>
+</svg>
+"""
 
 # ==========================================
 # 1. DATABASE INIT
