@@ -11,22 +11,9 @@ from werkzeug.security import generate_password_hash, check_password_hash
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "motherson_enterprise_global_2026_key")
 
-# Database path suitable for Render persistent/local execution
 DB_NAME = os.path.join(os.path.dirname(__file__), "motherson_portal.db")
 
-# =========================================================================
-# OFFICIAL MOTHERSON SVG LOGO (High-contrast, pure inline code)
-# =========================================================================
-MOTHERSON_LOGO_SVG = """
-<svg class="h-8 w-auto" viewBox="0 0 340 60" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <rect width="340" height="60" rx="6" fill="#FFFFFF"/>
-    <g transform="translate(12, 10)">
-        <path d="M0 40 V0 L12 24 L24 0 V40 H16 V16 L12 24 L8 16 V40 H0 Z" fill="#E11D48"/>
-        <path d="M18 40 V15 L26 31 L34 15 V40 H28 V24 L26 28 L24 24 V40 H18 Z" fill="#E11D48" opacity="0.85"/>
-    </g>
-    <text x="62" y="41" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-weight="900" font-size="28" fill="#000000" letter-spacing="3">MOTHERSON</text>
-</svg>
-"""
+MOTHERSON_LOGO_SVG = '<svg class="h-8 w-auto" viewBox="0 0 340 60" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="340" height="60" rx="6" fill="#FFFFFF"/><g transform="translate(12, 10)"><path d="M0 40 V0 L12 24 L24 0 V40 H16 V16 L12 24 L8 16 V40 H0 Z" fill="#E11D48"/><path d="M18 40 V15 L26 31 L34 15 V40 H28 V24 L26 28 L24 24 V40 H18 Z" fill="#E11D48" opacity="0.85"/></g><text x="62" y="41" font-family="Arial, sans-serif" font-weight="900" font-size="28" fill="#000000" letter-spacing="3">MOTHERSON</text></svg>'
 
 DEPARTMENTS = [
     "IT & Digital Infrastructure",
@@ -83,9 +70,6 @@ ROOMS = [
     }
 ]
 
-# =========================================================================
-# 1. DATABASE INITIALIZATION & SEEDING
-# =========================================================================
 def get_db():
     conn = sqlite3.connect(DB_NAME)
     conn.row_factory = sqlite3.Row
@@ -186,9 +170,6 @@ def seed_questions(cursor):
 
 init_db()
 
-# =========================================================================
-# 2. DYNAMIC API QUESTION GENERATOR
-# =========================================================================
 def fetch_dynamic_api_questions(amount=10):
     url = f"https://opentdb.com/api.php?amount={amount}&category=18&type=multiple"
     try:
@@ -223,7 +204,6 @@ def fetch_dynamic_api_questions(amount=10):
                     return dynamic_list
     except Exception:
         pass
-    
     return generate_procedural_questions(amount)
 
 def generate_procedural_questions(count=10):
@@ -250,9 +230,6 @@ def generate_procedural_questions(count=10):
         })
     return generated
 
-# =========================================================================
-# 3. SECURITY HELPERS
-# =========================================================================
 def login_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
@@ -280,9 +257,6 @@ def admin_required(f):
         return f(*args, **kwargs)
     return decorated_function
 
-# =========================================================================
-# 4. MASTER HTML TEMPLATE
-# =========================================================================
 HTML_LAYOUT = """
 <!DOCTYPE html>
 <html lang="en" class="h-full bg-black">
@@ -292,23 +266,6 @@ HTML_LAYOUT = """
     <title>Motherson | IT Command Portal</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
-    <script>
-      tailwind.config = {
-        theme: {
-          extend: {
-            colors: {
-              brand: {
-                red: '#E11D48',
-                hover: '#BE123C',
-                dark: '#0A0A0A',
-                card: '#121212',
-                border: '#262626'
-              }
-            }
-          }
-        }
-      }
-    </script>
     <style>
       * { -webkit-tap-highlight-color: transparent; }
       body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
@@ -320,15 +277,15 @@ HTML_LAYOUT = """
       }
     </style>
 </head>
-<body class="h-full flex flex-col text-white bg-black antialiased selection:bg-brand-red selection:text-white" x-data="{ mobileMenuOpen: false }">
+<body class="h-full flex flex-col text-white bg-black antialiased selection:bg-red-600 selection:text-white" x-data="{ mobileMenuOpen: false }">
     <div class="bg-radial-gradient"></div>
 
-    <nav class="bg-black/90 backdrop-blur-md border-b border-brand-red/50 sticky top-0 z-50">
+    <nav class="bg-black/90 backdrop-blur-md border-b border-red-600/50 sticky top-0 z-50">
         <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex items-center justify-between h-16">
                 <div class="flex items-center space-x-3">
                     <a href="/dashboard" class="flex items-center p-1 rounded transition-colors">
-                        ''' + MOTHERSON_LOGO_SVG + '''
+                        {{ logo_svg|safe }}
                     </a>
                     <span class="hidden sm:inline-block text-xs font-semibold uppercase tracking-widest text-zinc-400 border-l border-zinc-800 pl-3">
                         Enterprise Command Portal
@@ -349,7 +306,7 @@ HTML_LAYOUT = """
                     <a href="/dashboard" class="bg-zinc-900 border border-zinc-800 hover:border-zinc-600 text-white text-xs font-medium px-3 py-2 rounded transition-all">
                         Dashboard
                     </a>
-                    <a href="/logout" class="bg-brand-red hover:bg-brand-hover text-white text-xs font-bold px-3 py-2 rounded shadow transition-all">
+                    <a href="/logout" class="bg-red-600 hover:bg-red-700 text-white text-xs font-bold px-3 py-2 rounded shadow transition-all">
                         Logout
                     </a>
                 </div>
@@ -367,7 +324,7 @@ HTML_LAYOUT = """
         </div>
 
         {% if session.get('user') %}
-        <div x-show="mobileMenuOpen" x-cloak class="md:hidden bg-black/95 border-b border-brand-red px-4 pt-2 pb-4 space-y-2">
+        <div x-show="mobileMenuOpen" x-cloak class="md:hidden bg-black/95 border-b border-red-600 px-4 pt-2 pb-4 space-y-2">
             <div class="px-2 py-1 text-xs text-zinc-400 border-b border-zinc-800 mb-2">
                 User: <strong class="text-white">{{ session['user'] }}</strong> ({{ session.get('department') }})
             </div>
@@ -375,7 +332,7 @@ HTML_LAYOUT = """
             {% if session.get('role') == 'admin' %}
                 <a href="/admin" class="block w-full text-left px-3 py-2.5 rounded text-sm font-medium bg-white text-black font-extrabold">⚙️ Admin Control Panel</a>
             {% endif %}
-            <a href="/logout" class="block w-full text-left px-3 py-2.5 rounded text-sm font-medium bg-brand-red text-white">Logout</a>
+            <a href="/logout" class="block w-full text-left px-3 py-2.5 rounded text-sm font-medium bg-red-600 text-white">Logout</a>
         </div>
         {% endif %}
     </nav>
@@ -384,7 +341,7 @@ HTML_LAYOUT = """
         {% with messages = get_flashed_messages(with_categories=true) %}
           {% if messages %}
             {% for category, message in messages %}
-              <div class="mb-5 p-4 rounded-lg text-sm font-semibold flex items-center justify-between shadow-2xl {% if category == 'danger' %}bg-brand-red text-white border border-red-500{% else %}bg-white text-black border border-zinc-300{% endif %}">
+              <div class="mb-5 p-4 rounded-lg text-sm font-semibold flex items-center justify-between shadow-2xl {% if category == 'danger' %}bg-red-600 text-white border border-red-500{% else %}bg-white text-black border border-zinc-300{% endif %}">
                 <span>{{ message }}</span>
               </div>
             {% endfor %}
@@ -400,9 +357,10 @@ HTML_LAYOUT = """
 </html>
 """
 
-# =========================================================================
-# 5. ROUTES
-# =========================================================================
+def render_page(content, **context):
+    full_template = HTML_LAYOUT.replace('{% block content %}{% endblock %}', content)
+    return render_template_string(full_template, logo_svg=MOTHERSON_LOGO_SVG, **context)
+
 @app.route('/')
 def index():
     return redirect(url_for('login'))
@@ -435,10 +393,10 @@ def register():
             conn.close()
 
     content = '''
-    <div class="max-w-md mx-auto my-6 bg-zinc-950/90 backdrop-blur-md p-6 sm:p-8 rounded-xl border border-brand-red/50 shadow-2xl">
+    <div class="max-w-md mx-auto my-6 bg-zinc-950/90 backdrop-blur-md p-6 sm:p-8 rounded-xl border border-red-600/50 shadow-2xl">
         <div class="text-center mb-6">
             <div class="inline-block p-1 rounded-lg mb-3">
-                ''' + MOTHERSON_LOGO_SVG + '''
+                {{ logo_svg|safe }}
             </div>
             <h2 class="text-2xl font-bold text-white tracking-tight">Employee Registration</h2>
             <p class="text-xs text-zinc-400 mt-1">Register your profile across enterprise departments</p>
@@ -447,11 +405,11 @@ def register():
             <div>
                 <label class="block text-xs font-medium text-zinc-300 mb-1.5 uppercase tracking-wider">Username / Employee ID</label>
                 <input type="text" name="username" required autocomplete="off" 
-                       class="w-full bg-black border border-zinc-800 rounded px-4 py-3 text-white focus:outline-none focus:border-brand-red transition-all">
+                       class="w-full bg-black border border-zinc-800 rounded px-4 py-3 text-white focus:outline-none focus:border-red-600 transition-all">
             </div>
             <div>
                 <label class="block text-xs font-medium text-zinc-300 mb-1.5 uppercase tracking-wider">Department</label>
-                <select name="department" class="w-full bg-black border border-zinc-800 rounded px-4 py-3 text-white focus:outline-none focus:border-brand-red transition-all">
+                <select name="department" class="w-full bg-black border border-zinc-800 rounded px-4 py-3 text-white focus:outline-none focus:border-red-600 transition-all">
                     {% for dept in departments %}
                         <option value="{{ dept }}">{{ dept }}</option>
                     {% endfor %}
@@ -459,7 +417,7 @@ def register():
             </div>
             <div>
                 <label class="block text-xs font-medium text-zinc-300 mb-1.5 uppercase tracking-wider">Plant / Office Facility</label>
-                <select name="plant_location" class="w-full bg-black border border-zinc-800 rounded px-4 py-3 text-white focus:outline-none focus:border-brand-red transition-all">
+                <select name="plant_location" class="w-full bg-black border border-zinc-800 rounded px-4 py-3 text-white focus:outline-none focus:border-red-600 transition-all">
                     {% for plant in plants %}
                         <option value="{{ plant }}">{{ plant }}</option>
                     {% endfor %}
@@ -468,9 +426,9 @@ def register():
             <div>
                 <label class="block text-xs font-medium text-zinc-300 mb-1.5 uppercase tracking-wider">Password</label>
                 <input type="password" name="password" required 
-                       class="w-full bg-black border border-zinc-800 rounded px-4 py-3 text-white focus:outline-none focus:border-brand-red transition-all">
+                       class="w-full bg-black border border-zinc-800 rounded px-4 py-3 text-white focus:outline-none focus:border-red-600 transition-all">
             </div>
-            <button type="submit" class="w-full bg-brand-red hover:bg-brand-hover text-white font-bold py-3.5 rounded shadow-lg transition-all active:scale-[0.98]">
+            <button type="submit" class="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3.5 rounded shadow-lg transition-all active:scale-[0.98]">
                 Register Profile
             </button>
         </form>
@@ -479,11 +437,7 @@ def register():
         </p>
     </div>
     '''
-    return render_template_string(
-        HTML_LAYOUT.replace('{% block content %}{% endblock %}', content), 
-        departments=DEPARTMENTS, 
-        plants=PLANT_LOCATIONS
-    )
+    return render_page(content, departments=DEPARTMENTS, plants=PLANT_LOCATIONS)
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -505,10 +459,10 @@ def login():
             flash("Invalid login credentials.", "danger")
             
     content = '''
-    <div class="max-w-md mx-auto my-8 bg-zinc-950/90 backdrop-blur-md p-6 sm:p-8 rounded-xl border border-brand-red/50 shadow-2xl">
+    <div class="max-w-md mx-auto my-8 bg-zinc-950/90 backdrop-blur-md p-6 sm:p-8 rounded-xl border border-red-600/50 shadow-2xl">
         <div class="text-center mb-6">
             <div class="inline-block p-1 rounded-lg mb-3">
-                ''' + MOTHERSON_LOGO_SVG + '''
+                {{ logo_svg|safe }}
             </div>
             <h2 class="text-2xl font-bold text-white tracking-tight">System Login</h2>
             <p class="text-xs text-zinc-400 mt-1">Access operational command & simulation center</p>
@@ -517,12 +471,12 @@ def login():
             <div>
                 <label class="block text-xs font-medium text-zinc-300 mb-1.5 uppercase tracking-wider">Username / Employee ID</label>
                 <input type="text" name="username" required autocomplete="off"
-                       class="w-full bg-black border border-zinc-800 rounded px-4 py-3 text-white focus:outline-none focus:border-brand-red transition-all">
+                       class="w-full bg-black border border-zinc-800 rounded px-4 py-3 text-white focus:outline-none focus:border-red-600 transition-all">
             </div>
             <div>
                 <label class="block text-xs font-medium text-zinc-300 mb-1.5 uppercase tracking-wider">Password</label>
                 <input type="password" name="password" required 
-                       class="w-full bg-black border border-zinc-800 rounded px-4 py-3 text-white focus:outline-none focus:border-brand-red transition-all">
+                       class="w-full bg-black border border-zinc-800 rounded px-4 py-3 text-white focus:outline-none focus:border-red-600 transition-all">
             </div>
             <button type="submit" class="w-full bg-white hover:bg-zinc-200 text-black font-extrabold py-3.5 rounded shadow-lg transition-all active:scale-[0.98]">
                 Sign In
@@ -530,21 +484,21 @@ def login():
         </form>
         <div class="mt-6 pt-4 border-t border-zinc-900 text-center">
             <p class="text-xs text-zinc-400">
-                New employee? <a href="/register" class="text-brand-red font-bold hover:underline">Create an account</a>
+                New employee? <a href="/register" class="text-red-500 font-bold hover:underline">Create an account</a>
             </p>
         </div>
     </div>
     '''
-    return render_template_string(HTML_LAYOUT.replace('{% block content %}{% endblock %}', content))
+    return render_page(content)
 
 @app.route('/dashboard')
 @login_required
 def dashboard():
     conn = get_db()
     
-    # Group by username so each employee only appears ONCE with their highest score
+    # SUM(score) aggregates total accumulated points earned across all completed modules
     rankings = conn.execute('''
-        SELECT username, department, plant_location, MAX(score) as score, MIN(time_seconds) as time_seconds, MAX(completed_at) as completed_at 
+        SELECT username, department, plant_location, SUM(score) as score, SUM(time_seconds) as time_seconds, MAX(completed_at) as completed_at 
         FROM scores 
         GROUP BY username 
         ORDER BY score DESC, time_seconds ASC 
@@ -552,7 +506,7 @@ def dashboard():
     ''').fetchall()
     
     user_best = conn.execute('''
-        SELECT MAX(score) as best_score FROM scores WHERE username = ?
+        SELECT SUM(score) as best_score FROM scores WHERE username = ?
     ''', (session['user'],)).fetchone()
     conn.close()
 
@@ -560,7 +514,7 @@ def dashboard():
     <div class="space-y-8">
         <div class="bg-zinc-950/90 backdrop-blur-md p-6 rounded-xl border border-zinc-800 shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
             <div>
-                <div class="text-xs text-brand-red font-bold uppercase tracking-wider mb-1">Employee Operational Profile</div>
+                <div class="text-xs text-red-500 font-bold uppercase tracking-wider mb-1">Employee Operational Profile</div>
                 <h2 class="text-2xl font-bold text-white">{{ session['user'] }}</h2>
                 <div class="text-xs text-zinc-400 mt-1 flex flex-wrap gap-2">
                     <span class="bg-zinc-900 px-2.5 py-1 rounded border border-zinc-800">🏢 {{ session.get('department') }}</span>
@@ -568,7 +522,7 @@ def dashboard():
                 </div>
             </div>
             <div class="bg-black p-4 rounded-xl border border-zinc-800 text-center min-w-[140px]">
-                <div class="text-[10px] text-zinc-500 uppercase font-bold tracking-wider">Personal High Score</div>
+                <div class="text-[10px] text-zinc-500 uppercase font-bold tracking-wider">Total Cumulative Score</div>
                 <div class="text-2xl font-black text-white mt-0.5">{{ user_best['best_score'] or 0 }} <span class="text-xs font-normal text-zinc-400">PTS</span></div>
             </div>
         </div>
@@ -580,26 +534,26 @@ def dashboard():
             
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {% for room in rooms %}
-                <div class="bg-zinc-950/90 backdrop-blur-md p-6 rounded-xl border border-zinc-800 hover:border-brand-red/60 transition-all shadow-xl flex flex-col justify-between group">
+                <div class="bg-zinc-950/90 backdrop-blur-md p-6 rounded-xl border border-zinc-800 hover:border-red-600/60 transition-all shadow-xl flex flex-col justify-between group">
                     <div>
                         <div class="flex items-center justify-between mb-3">
-                            <span class="bg-brand-red text-white text-[10px] font-black px-2.5 py-1 rounded uppercase tracking-widest">
+                            <span class="bg-red-600 text-white text-[10px] font-black px-2.5 py-1 rounded uppercase tracking-widest">
                                 {{ room['code'] }}
                             </span>
                             <span class="text-2xl">{{ room['icon'] }}</span>
                         </div>
-                        <h4 class="text-base font-bold text-white mb-2 group-hover:text-brand-red transition-colors">{{ room['name'] }}</h4>
+                        <h4 class="text-base font-bold text-white mb-2 group-hover:text-red-500 transition-colors">{{ room['name'] }}</h4>
                         <p class="text-xs text-zinc-400 leading-relaxed mb-6">{{ room['description'] }}</p>
                     </div>
                     
                     <a href="/start-room/{{ room['id'] }}" 
-                       class="block w-full text-center bg-zinc-900 hover:bg-brand-red text-white text-xs font-bold py-3 rounded transition-all border border-zinc-800 hover:border-brand-red shadow">
+                       class="block w-full text-center bg-zinc-900 hover:bg-red-600 text-white text-xs font-bold py-3 rounded transition-all border border-zinc-800 hover:border-red-600 shadow">
                         Enter Module & Start
                     </a>
                 </div>
                 {% endfor %}
 
-                <div class="bg-zinc-950/90 backdrop-blur-md p-6 rounded-xl border border-brand-red/50 shadow-xl flex flex-col justify-between group">
+                <div class="bg-zinc-950/90 backdrop-blur-md p-6 rounded-xl border border-red-600/50 shadow-xl flex flex-col justify-between group">
                     <div>
                         <div class="flex items-center justify-between mb-3">
                             <span class="bg-white text-black text-[10px] font-black px-2.5 py-1 rounded uppercase tracking-widest">
@@ -607,12 +561,12 @@ def dashboard():
                             </span>
                             <span class="text-2xl">⚡</span>
                         </div>
-                        <h4 class="text-base font-bold text-white mb-2 group-hover:text-brand-red transition-colors">🌐 Live API Dynamic Challenge</h4>
+                        <h4 class="text-base font-bold text-white mb-2 group-hover:text-red-500 transition-colors">🌐 Live API Dynamic Challenge</h4>
                         <p class="text-xs text-zinc-400 leading-relaxed mb-6">Generates real-time random IT scenarios fetched dynamically via external APIs.</p>
                     </div>
                     
                     <a href="/start-dynamic-room" 
-                       class="block w-full text-center bg-brand-red hover:bg-brand-hover text-white text-xs font-bold py-3 rounded transition-all shadow">
+                       class="block w-full text-center bg-red-600 hover:bg-red-700 text-white text-xs font-bold py-3 rounded transition-all shadow">
                         ⚡ Launch API Dynamic Quiz
                     </a>
                 </div>
@@ -622,7 +576,7 @@ def dashboard():
         <div class="bg-zinc-950/90 backdrop-blur-md p-6 rounded-xl border border-zinc-800 shadow-xl">
             <h3 class="text-lg font-bold text-white mb-4 flex items-center justify-between border-b border-zinc-800 pb-2">
                 <span>🏆 Enterprise Rankings</span>
-                <span class="text-xs text-brand-red font-bold">ALL DEPARTMENTS</span>
+                <span class="text-xs text-red-500 font-bold">CUMULATIVE POINTS</span>
             </h3>
             
             <div class="overflow-x-auto">
@@ -633,14 +587,14 @@ def dashboard():
                             <th class="p-3">Employee</th>
                             <th class="p-3">Department</th>
                             <th class="p-3">Plant Facility</th>
-                            <th class="p-3">Score</th>
-                            <th class="p-3">Time</th>
+                            <th class="p-3">Total Score</th>
+                            <th class="p-3">Total Time</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-zinc-900">
                         {% for r in rankings %}
                         <tr class="hover:bg-zinc-900/50">
-                            <td class="p-3 font-bold text-brand-red">{{ loop.index }}</td>
+                            <td class="p-3 font-bold text-red-500">{{ loop.index }}</td>
                             <td class="p-3 font-bold text-white">{{ r['username'] }}</td>
                             <td class="p-3 text-zinc-400">{{ r['department'] }}</td>
                             <td class="p-3 text-zinc-400">{{ r['plant_location'] }}</td>
@@ -658,7 +612,7 @@ def dashboard():
         </div>
     </div>
     '''
-    return render_template_string(HTML_LAYOUT.replace('{% block content %}{% endblock %}', content), rooms=ROOMS, rankings=rankings, user_best=user_best)
+    return render_page(content, rooms=ROOMS, rankings=rankings, user_best=user_best)
 
 @app.route('/start-room/<int:room_id>')
 @login_required
@@ -732,19 +686,19 @@ def play_quiz():
     progress_pct = int(((idx) / total_q) * 100)
 
     content = '''
-    <div class="max-w-2xl mx-auto bg-zinc-950/90 backdrop-blur-md p-6 sm:p-8 rounded-xl border border-brand-red/50 shadow-2xl">
+    <div class="max-w-2xl mx-auto bg-zinc-950/90 backdrop-blur-md p-6 sm:p-8 rounded-xl border border-red-600/50 shadow-2xl">
         <div class="mb-6">
             <div class="flex justify-between text-xs text-zinc-400 mb-2">
                 <span>QUESTION {{ idx + 1 }} OF {{ total_q }}</span>
                 <span>PROGRESS: {{ progress_pct }}%</span>
             </div>
             <div class="w-full bg-zinc-900 h-2 rounded-full overflow-hidden border border-zinc-800">
-                <div class="bg-brand-red h-full transition-all duration-300" style="width: {{ progress_pct }}%;"></div>
+                <div class="bg-red-600 h-full transition-all duration-300" style="width: {{ progress_pct }}%;"></div>
             </div>
         </div>
 
         <div class="flex items-center justify-between mb-4">
-            <span class="bg-brand-red text-white text-xs font-bold px-3 py-1 rounded uppercase tracking-widest">
+            <span class="bg-red-600 text-white text-xs font-bold px-3 py-1 rounded uppercase tracking-widest">
                 {{ question['title'] }}
             </span>
             <span class="text-xs font-bold text-black bg-white px-2.5 py-1 rounded">
@@ -760,26 +714,26 @@ def play_quiz():
 
         <form method="POST" class="space-y-3">
             <button type="submit" name="option" value="A" 
-                    class="w-full text-left bg-black hover:bg-zinc-900 border border-zinc-800 hover:border-brand-red p-4 rounded text-xs sm:text-sm transition-all flex items-start space-x-3 active:scale-[0.99]">
-                <span class="font-bold text-white bg-brand-red px-2 py-0.5 rounded">A</span>
+                    class="w-full text-left bg-black hover:bg-zinc-900 border border-zinc-800 hover:border-red-600 p-4 rounded text-xs sm:text-sm transition-all flex items-start space-x-3 active:scale-[0.99]">
+                <span class="font-bold text-white bg-red-600 px-2 py-0.5 rounded">A</span>
                 <span class="text-zinc-200 mt-0.5">{{ question['opt_a'] }}</span>
             </button>
 
             <button type="submit" name="option" value="B" 
-                    class="w-full text-left bg-black hover:bg-zinc-900 border border-zinc-800 hover:border-brand-red p-4 rounded text-xs sm:text-sm transition-all flex items-start space-x-3 active:scale-[0.99]">
-                <span class="font-bold text-white bg-brand-red px-2 py-0.5 rounded">B</span>
+                    class="w-full text-left bg-black hover:bg-zinc-900 border border-zinc-800 hover:border-red-600 p-4 rounded text-xs sm:text-sm transition-all flex items-start space-x-3 active:scale-[0.99]">
+                <span class="font-bold text-white bg-red-600 px-2 py-0.5 rounded">B</span>
                 <span class="text-zinc-200 mt-0.5">{{ question['opt_b'] }}</span>
             </button>
 
             <button type="submit" name="option" value="C" 
-                    class="w-full text-left bg-black hover:bg-zinc-900 border border-zinc-800 hover:border-brand-red p-4 rounded text-xs sm:text-sm transition-all flex items-start space-x-3 active:scale-[0.99]">
-                <span class="font-bold text-white bg-brand-red px-2 py-0.5 rounded">C</span>
+                    class="w-full text-left bg-black hover:bg-zinc-900 border border-zinc-800 hover:border-red-600 p-4 rounded text-xs sm:text-sm transition-all flex items-start space-x-3 active:scale-[0.99]">
+                <span class="font-bold text-white bg-red-600 px-2 py-0.5 rounded">C</span>
                 <span class="text-zinc-200 mt-0.5">{{ question['opt_c'] }}</span>
             </button>
         </form>
     </div>
     '''
-    return render_template_string(HTML_LAYOUT.replace('{% block content %}{% endblock %}', content), question=question, idx=idx, total_q=total_q, progress_pct=progress_pct)
+    return render_page(content, question=question, idx=idx, total_q=total_q, progress_pct=progress_pct)
 
 @app.route('/admin', methods=['GET', 'POST'])
 @login_required
@@ -811,16 +765,16 @@ def admin_panel():
 
     content = '''
     <div class="space-y-8">
-        <div class="bg-zinc-950/90 backdrop-blur-md p-6 rounded-xl border border-brand-red/50 shadow-xl">
+        <div class="bg-zinc-950/90 backdrop-blur-md p-6 rounded-xl border border-red-600/50 shadow-xl">
             <h3 class="text-lg font-bold text-white mb-4 flex items-center justify-between border-b border-zinc-800 pb-2">
                 <span>⚙️ Create Custom Operational Scenario</span>
-                <span class="text-xs text-brand-red font-bold">TOTAL SCENARIOS: {{ q_count }}</span>
+                <span class="text-xs text-red-500 font-bold">TOTAL SCENARIOS: {{ q_count }}</span>
             </h3>
             
             <form method="POST" class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs sm:text-sm">
                 <div>
                     <label class="block text-zinc-400 mb-1">Target Room / Module</label>
-                    <select name="room_id" class="w-full bg-black border border-zinc-800 p-3 rounded text-white focus:border-brand-red">
+                    <select name="room_id" class="w-full bg-black border border-zinc-800 p-3 rounded text-white focus:border-red-600">
                         {% for r in rooms %}
                             <option value="{{ r['id'] }}">{{ r['name'] }}</option>
                         {% endfor %}
@@ -828,15 +782,15 @@ def admin_panel():
                 </div>
                 <div>
                     <label class="block text-zinc-400 mb-1">Level Order</label>
-                    <input type="number" name="level" value="1" required class="w-full bg-black border border-zinc-800 p-3 rounded text-white focus:border-brand-red">
+                    <input type="number" name="level" value="1" required class="w-full bg-black border border-zinc-800 p-3 rounded text-white focus:border-red-600">
                 </div>
                 <div>
                     <label class="block text-zinc-400 mb-1">Points Value</label>
-                    <input type="number" name="points" value="100" required class="w-full bg-black border border-zinc-800 p-3 rounded text-white focus:border-brand-red">
+                    <input type="number" name="points" value="100" required class="w-full bg-black border border-zinc-800 p-3 rounded text-white focus:border-red-600">
                 </div>
                 <div>
                     <label class="block text-zinc-400 mb-1">Correct Answer Choice</label>
-                    <select name="correct_opt" class="w-full bg-black border border-zinc-800 p-3 rounded text-white focus:border-brand-red">
+                    <select name="correct_opt" class="w-full bg-black border border-zinc-800 p-3 rounded text-white focus:border-red-600">
                         <option value="A">Option A</option>
                         <option value="B">Option B</option>
                         <option value="C">Option C</option>
@@ -844,27 +798,27 @@ def admin_panel():
                 </div>
                 <div class="sm:col-span-2">
                     <label class="block text-zinc-400 mb-1">Incident Title</label>
-                    <input type="text" name="title" required class="w-full bg-black border border-zinc-800 p-3 rounded text-white focus:border-brand-red">
+                    <input type="text" name="title" required class="w-full bg-black border border-zinc-800 p-3 rounded text-white focus:border-red-600">
                 </div>
                 <div class="sm:col-span-2">
                     <label class="block text-zinc-400 mb-1">Description</label>
-                    <textarea name="description" required class="w-full bg-black border border-zinc-800 p-3 rounded text-white h-20 focus:border-brand-red"></textarea>
+                    <textarea name="description" required class="w-full bg-black border border-zinc-800 p-3 rounded text-white h-20 focus:border-red-600"></textarea>
                 </div>
                 <div class="sm:col-span-2">
                     <label class="block text-zinc-400 mb-1">Diagnostic Question</label>
-                    <input type="text" name="question" required class="w-full bg-black border border-zinc-800 p-3 rounded text-white focus:border-brand-red">
+                    <input type="text" name="question" required class="w-full bg-black border border-zinc-800 p-3 rounded text-white focus:border-red-600">
                 </div>
                 <div>
                     <label class="block text-zinc-400 mb-1">Option [A]</label>
-                    <input type="text" name="opt_a" required class="w-full bg-black border border-zinc-800 p-3 rounded text-white focus:border-brand-red">
+                    <input type="text" name="opt_a" required class="w-full bg-black border border-zinc-800 p-3 rounded text-white focus:border-red-600">
                 </div>
                 <div>
                     <label class="block text-zinc-400 mb-1">Option [B]</label>
-                    <input type="text" name="opt_b" required class="w-full bg-black border border-zinc-800 p-3 rounded text-white focus:border-brand-red">
+                    <input type="text" name="opt_b" required class="w-full bg-black border border-zinc-800 p-3 rounded text-white focus:border-red-600">
                 </div>
                 <div class="sm:col-span-2">
                     <label class="block text-zinc-400 mb-1">Option [C]</label>
-                    <input type="text" name="opt_c" required class="w-full bg-black border border-zinc-800 p-3 rounded text-white focus:border-brand-red">
+                    <input type="text" name="opt_c" required class="w-full bg-black border border-zinc-800 p-3 rounded text-white focus:border-red-600">
                 </div>
                 <div class="sm:col-span-2 mt-2">
                     <button type="submit" class="bg-white hover:bg-zinc-200 text-black font-extrabold px-6 py-3 rounded shadow transition-all active:scale-[0.98]">
@@ -907,7 +861,7 @@ def admin_panel():
         </div>
     </div>
     '''
-    return render_template_string(HTML_LAYOUT.replace('{% block content %}{% endblock %}', content), users=users, rooms=ROOMS, q_count=q_count)
+    return render_page(content, users=users, rooms=ROOMS, q_count=q_count)
 
 @app.route('/logout')
 def logout():
