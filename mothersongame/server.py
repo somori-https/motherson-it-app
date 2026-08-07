@@ -6,19 +6,12 @@ from flask import Flask, render_template_string, request, redirect, url_for, ses
 from werkzeug.security import generate_password_hash, check_password_hash
 
 app = Flask(__name__)
-app.secret_key = os.environ.get("SECRET_KEY", "motherson_logo_red_black_white_2026")
+app.secret_key = os.environ.get("SECRET_KEY", "motherson_inline_svg_2026")
 
 DB_NAME = "motherson_portal.db"
 
-# Official Motherson Logo URL (Crisp Transparent PNG)
-# Inline SVG Logo - embedded directly so it never blocks or breaks
-MOTHERSON_LOGO_SVG = """
-<svg class="h-6 sm:h-7 w-auto" viewBox="0 0 320 60" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <rect width="320" height="60" rx="6" fill="#121212"/>
-    <path d="M20 15H32L42 38L52 15H64V45H54V26L45 45H39L30 26V45H20V15Z" fill="#E11D48"/>
-    <text x="75" y="38" font-family="Arial, Helvetica, sans-serif" font-weight="900" font-size="26" fill="#FFFFFF" letter-spacing="2">MOTHERSON</text>
-</svg>
-"""
+# BULLETPROOF INLINE SVG LOGO (No external URL / No hotlink blocks)
+MOTHERSON_LOGO_SVG = """<svg class="h-7 w-auto" viewBox="0 0 320 50" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M10 10H20L28 30L36 10H46V40H38V20L30 38H26L18 20V40H10V10Z" fill="#E11D48"/><text x="52" y="34" font-family="-apple-system, BlinkMacSystemFont, Arial, sans-serif" font-weight="900" font-size="24" fill="#000000" letter-spacing="2.5">MOTHERSON</text></svg>"""
 
 # ==========================================
 # 1. DATABASE INIT
@@ -121,7 +114,7 @@ def admin_required(f):
     return decorated_function
 
 # ==========================================
-# 3. RED, WHITE & BLACK LAYOUT WITH LOGO & VIDEO
+# 3. RED, WHITE & BLACK LAYOUT
 # ==========================================
 HTML_LAYOUT = """
 <!DOCTYPE html>
@@ -201,12 +194,10 @@ HTML_LAYOUT = """
         <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex items-center justify-between h-16">
                 
-                <!-- Brand Official Logo -->
+                <!-- Brand Official Logo (Embedded SVG) -->
                 <div class="flex items-center space-x-3">
-                    <a href="/dashboard" class="flex items-center bg-white/95 px-3 py-1.5 rounded shadow-lg hover:bg-white transition-colors">
-                        <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/8/87/Motherson_Group_logo.svg/512px-Motherson_Group_logo.svg.png" 
-                             alt="Motherson Logo" 
-                             class="h-6 sm:h-7 w-auto object-contain">
+                    <a href="/dashboard" class="flex items-center bg-white px-3 py-1.5 rounded shadow-lg hover:bg-zinc-100 transition-colors">
+                        ''' + MOTHERSON_LOGO_SVG + '''
                     </a>
                     <span class="hidden sm:inline-block text-xs font-semibold uppercase tracking-widest text-zinc-400 border-l border-zinc-800 pl-3">
                         Enterprise Command Portal
@@ -278,8 +269,6 @@ HTML_LAYOUT = """
 
     <!-- FOOTER -->
     <footer class="bg-black/90 border-t border-zinc-900 py-4 text-center text-xs text-zinc-500 flex flex-col items-center justify-center space-y-2">
-        <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/8/87/Motherson_Group_logo.svg/512px-Motherson_Group_logo.svg.png" 
-             alt="Motherson Logo" class="h-4 w-auto grayscale opacity-40 hover:opacity-100 transition-opacity">
         <div>MOTHERSON ENTERPRISE &copy; 2026 | Red & White Corporate System</div>
     </footer>
 </body>
@@ -319,9 +308,8 @@ def register():
     content = '''
     <div class="max-w-md mx-auto my-8 bg-zinc-950/90 backdrop-blur-md p-6 sm:p-8 rounded-xl border border-brand-red/50 shadow-2xl">
         <div class="text-center mb-6">
-            <div class="inline-block bg-white p-2.5 rounded shadow-lg mb-4">
-                <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/8/87/Motherson_Group_logo.svg/512px-Motherson_Group_logo.svg.png" 
-                     alt="Motherson Logo" class="h-8 w-auto mx-auto object-contain">
+            <div class="inline-block bg-white p-3 rounded-lg shadow-lg mb-4">
+                ''' + MOTHERSON_LOGO_SVG + '''
             </div>
             <h2 class="text-2xl font-bold text-white tracking-tight">Operator Registration</h2>
             <p class="text-xs text-zinc-400 mt-1">Join the enterprise simulation platform</p>
@@ -368,9 +356,8 @@ def login():
     content = '''
     <div class="max-w-md mx-auto my-8 bg-zinc-950/90 backdrop-blur-md p-6 sm:p-8 rounded-xl border border-brand-red/50 shadow-2xl">
         <div class="text-center mb-6">
-            <div class="inline-block bg-white p-2.5 rounded shadow-lg mb-4">
-                <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/8/87/Motherson_Group_logo.svg/512px-Motherson_Group_logo.svg.png" 
-                     alt="Motherson Logo" class="h-8 w-auto mx-auto object-contain">
+            <div class="inline-block bg-white p-3 rounded-lg shadow-lg mb-4">
+                ''' + MOTHERSON_LOGO_SVG + '''
             </div>
             <h2 class="text-2xl font-bold text-white tracking-tight">System Login</h2>
             <p class="text-xs text-zinc-400 mt-1">Access secure operations command portal</p>
